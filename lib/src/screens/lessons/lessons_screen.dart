@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:uciberseguridad_app/src/screens/lessons/subject_detail_screen.dart';
 import 'package:uciberseguridad_app/theme/app_theme.dart';
 
 /// Screen that displays all available cybersecurity lessons.
@@ -261,7 +262,14 @@ class LessonsScreen extends StatelessWidget {
               else
                 FilledButton(
                   onPressed: () {
-                    debugPrint('Botón presionado: $title');
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => SubjectDetailScreen(
+                          subjectTitle: title,
+                        ),
+                      ),
+                    );
                   },
                   child: Text(
                     buttonText,
@@ -296,7 +304,14 @@ class LessonsScreen extends StatelessWidget {
               else
                 TextButton(
                   onPressed: () {
-                    debugPrint('Botón presionado: $title');
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => SubjectDetailScreen(
+                          subjectTitle: title,
+                        ),
+                      ),
+                    );
                   },
                   style: TextButton.styleFrom(
                     padding: EdgeInsets.zero,

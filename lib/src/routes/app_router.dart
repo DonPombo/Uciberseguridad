@@ -1,5 +1,6 @@
 import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
+import 'package:uciberseguridad_app/src/screens/lessons/subject_detail_screen.dart';
 import 'bottom_navigation_bar.dart';
 import '../screens/screens.dart';
 
@@ -27,6 +28,12 @@ class AppRouter {
           GoRoute(
             path: '/profile',
             builder: (context, state) => const ProfileScreen(),
+          ),
+          GoRoute(
+            path: '/subject_detail',
+            builder: (context, state) => SubjectDetailScreen(
+              subjectTitle: state.extra as String,
+            ),
           ),
         ],
       ),
