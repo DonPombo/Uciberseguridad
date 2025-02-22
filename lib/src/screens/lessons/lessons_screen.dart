@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:uciberseguridad_app/theme/app_theme.dart';
 
+/// Screen that displays all available cybersecurity lessons.
+/// Handles lesson navigation, progress tracking, and search functionality.
 class LessonsScreen extends StatelessWidget {
   const LessonsScreen({super.key});
 
@@ -33,6 +35,12 @@ class LessonsScreen extends StatelessWidget {
     );
   }
 
+  /// Builds a custom search bar for filtering lessons.
+  ///
+  /// Features:
+  /// - Custom styling matching app theme
+  /// - Placeholder text
+  /// - Search icon
   Widget _buildSearchBar() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -52,6 +60,12 @@ class LessonsScreen extends StatelessWidget {
     );
   }
 
+  /// Constructs the main scrollable list of lesson cards.
+  ///
+  /// Each card represents a distinct cybersecurity lesson with:
+  /// - Progress tracking
+  /// - Interactive elements
+  /// - Visual indicators
   Widget _buildLessonsList() {
     return Column(
       children: [
@@ -59,15 +73,15 @@ class LessonsScreen extends StatelessWidget {
           'Fundamentos de Ciberseguridad',
           'Introducción y conceptos básicos',
           Icons.security,
-          AppTheme.primaryColor,
-          0.22,
+          AppTheme.secondaryColor,
+          0.0,
         ),
         _buildLessonItem(
           'Contraseñas Seguras',
           'Gestión y creación de contraseñas fuertes',
           Icons.password,
           AppTheme.quaternaryColor,
-          0.40,
+          1.0,
         ),
         _buildLessonItem(
           'Protección contra Phishing',
@@ -87,6 +101,21 @@ class LessonsScreen extends StatelessWidget {
     );
   }
 
+  /// Creates an individual lesson card with dynamic states and responsive layout.
+  ///
+  /// The card adapts its layout based on screen width and lesson progress state.
+  ///
+  /// Parameters:
+  /// - [title] - The lesson's display name
+  /// - [subtitle] - Brief description of lesson content
+  /// - [icon] - MaterialIcon representing the lesson category
+  /// - [color] - Theme color for visual distinction
+  /// - [progress] - Completion percentage (0.0 to 1.0)
+  ///
+  /// The card's action button shows different states:
+  /// - "Empezar" (0% progress)
+  /// - "Continuar" (1-99% progress)
+  /// - "Completado" (100% progress)
   Widget _buildLessonItem(
     String title,
     String subtitle,
@@ -94,64 +123,124 @@ class LessonsScreen extends StatelessWidget {
     Color color,
     double progress,
   ) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceColor,
-        borderRadius: BorderRadius.circular(12),
+    final String buttonText = _determineButtonText(progress);
+
+    return InkWell(
+      onTap: () {
+        debugPrint('Navigating to lesson: $title');
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceColor,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header section with lesson identity
+            _buildLessonHeader(title, subtitle, icon, color),
+
+            const SizedBox(height: 16),
+
+            // Progress visualization
+            _buildProgressIndicator(progress, color),
+
+            const SizedBox(height: 8),
+
+            // Action section with responsive layout
+            _buildActionSection(progress, buttonText, title),
+          ],
+        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    );
+  }
+
+  /// Determines the button text based on lesson progress.
+  String _determineButtonText(double progress) {
+    if (progress >= 1.0) return 'Completado';
+    if (progress > 0) return 'Continuar';
+    return 'Empezar';
+  }
+
+  /// Builds the lesson header which includes:
+  /// - Icon with custom background color
+  /// - Lesson title
+  /// - Descriptive subtitle
+  Widget _buildLessonHeader(
+      String title, String subtitle, IconData icon, Color color) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(icon, color: Colors.white),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(12),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: AppTheme.textColor,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
                 ),
-                child: Icon(icon, color: Colors.white),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        color: AppTheme.textColor,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        color: AppTheme.textColor.withOpacity(0.7),
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  color: AppTheme.textColor.withOpacity(0.7),
+                  fontSize: 14,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: LinearProgressIndicator(
-              value: progress,
-              backgroundColor: AppTheme.backgroundColor,
-              valueColor: AlwaysStoppedAnimation<Color>(color),
-              minHeight: 8,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
+        ),
+      ],
+    );
+  }
+
+  /// Builds a custom progress indicator for the lesson.
+  ///
+  /// Displays a progress bar with:
+  /// - Custom color based on lesson category
+  /// - Rounded corners
+  /// - Custom height
+  Widget _buildProgressIndicator(double progress, Color color) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: LinearProgressIndicator(
+        value: progress,
+        backgroundColor: AppTheme.backgroundColor,
+        valueColor: AlwaysStoppedAnimation<Color>(color),
+        minHeight: 8,
+      ),
+    );
+  }
+
+  /// Builds the action section that adapts to available width.
+  ///
+  /// Features:
+  /// - Responsive layout that switches between Row and Column
+  /// - Shows progress percentage
+  /// - Action button that changes based on progress state
+  Widget _buildActionSection(double progress, String buttonText, String title) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableWidth = constraints.maxWidth;
+        const textWidth = 150.0;
+        const buttonWidth = 100.0;
+
+        if (availableWidth >= textWidth + buttonWidth + 20) {
+          return Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
@@ -161,20 +250,71 @@ class LessonsScreen extends StatelessWidget {
                   fontSize: 12,
                 ),
               ),
-              TextButton(
-                onPressed: () {},
-                child: const Text(
-                  'Continuar',
+              if (progress >= 1.0)
+                Text(
+                  buttonText,
                   style: TextStyle(
-                    color: AppTheme.accentColor,
+                    color: AppTheme.textColor.withOpacity(0.7),
                     fontWeight: FontWeight.bold,
                   ),
+                )
+              else
+                FilledButton(
+                  onPressed: () {
+                    debugPrint('Botón presionado: $title');
+                  },
+                  child: Text(
+                    buttonText,
+                    style: const TextStyle(
+                      color: AppTheme.accentColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+            ],
+          );
+        } else {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${(progress * 100).toInt()}% Completado',
+                style: TextStyle(
+                  color: AppTheme.textColor.withOpacity(0.7),
+                  fontSize: 12,
                 ),
               ),
+              const SizedBox(height: 4),
+              if (progress >= 1.0)
+                Text(
+                  buttonText,
+                  style: TextStyle(
+                    color: AppTheme.textColor.withOpacity(0.7),
+                    fontWeight: FontWeight.bold,
+                  ),
+                )
+              else
+                TextButton(
+                  onPressed: () {
+                    debugPrint('Botón presionado: $title');
+                  },
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(50, 30),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: Text(
+                    buttonText,
+                    style: const TextStyle(
+                      color: AppTheme.accentColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
             ],
-          ),
-        ],
-      ),
+          );
+        }
+      },
     );
   }
 }
