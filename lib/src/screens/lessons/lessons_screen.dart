@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:uciberseguridad_app/src/screens/lessons/subject_detail_screen.dart';
+import 'package:uciberseguridad_app/src/screens/lessons/01-Fundamentos/subject_detail_screen.dart';
 import 'package:uciberseguridad_app/theme/app_theme.dart';
 
 /// Screen that displays all available cybersecurity lessons.

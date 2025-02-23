@@ -1,6 +1,7 @@
 import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
-import 'package:uciberseguridad_app/src/screens/lessons/subject_detail_screen.dart';
+import 'package:uciberseguridad_app/src/screens/lessons/01-Fundamentos/lesson_content_screen.dart';
+import 'package:uciberseguridad_app/src/screens/lessons/01-Fundamentos/subject_detail_screen.dart';
 import 'bottom_navigation_bar.dart';
 import '../screens/screens.dart';
 
@@ -33,6 +34,12 @@ class AppRouter {
             path: '/subject_detail',
             builder: (context, state) => SubjectDetailScreen(
               subjectTitle: state.extra as String,
+            ),
+          ),
+          GoRoute(
+            path: '/lesson_content',
+            builder: (context, state) => LessonContentScreen(
+              lessonTitle: state.extra as String,
             ),
           ),
         ],
