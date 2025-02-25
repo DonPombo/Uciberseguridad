@@ -1,67 +1,43 @@
 import 'package:go_router/go_router.dart';
-import 'package:flutter/material.dart';
 import 'package:uciberseguridad_app/src/screens/lessons/01-Fundamentos/lesson_content_screen.dart';
 import 'package:uciberseguridad_app/src/screens/lessons/01-Fundamentos/subject_detail_screen.dart';
-import 'bottom_navigation_bar.dart';
 import '../screens/screens.dart';
 
 class AppRouter {
   static final router = GoRouter(
     initialLocation: '/',
     routes: [
-      ShellRoute(
-        builder: (context, state, child) {
-          return ScaffoldWithBottomBar(child: child);
-        },
-        routes: [
-          GoRoute(
-            path: '/',
-            builder: (context, state) => const HomeScreen(),
-          ),
-          GoRoute(
-            path: '/lessons',
-            builder: (context, state) => const LessonsScreen(),
-          ),
-          GoRoute(
-            path: '/quiz',
-            builder: (context, state) => const QuizScreen(
-              lessonId: '1',
-              lessonTitle: 'Fundamentos de Ciberseguridad',
-            ),
-          ),
-          GoRoute(
-            path: '/profile',
-            builder: (context, state) => const ProfileScreen(),
-          ),
-          GoRoute(
-            path: '/subject_detail',
-            builder: (context, state) => SubjectDetailScreen(
-              subjectTitle: state.extra as String,
-            ),
-          ),
-          GoRoute(
-            path: '/lesson_content',
-            builder: (context, state) => LessonContentScreen(
-              lessonTitle: state.extra as String,
-            ),
-          ),
-        ],
+      GoRoute(
+        path: '/',
+        builder: (context, state) => const HomeScreen(),
+      ),
+      GoRoute(
+        path: '/lessons',
+        builder: (context, state) => const LessonsScreen(),
+      ),
+      GoRoute(
+        path: '/quiz',
+        builder: (context, state) => const QuizScreen(
+          lessonId: '1',
+          lessonTitle: 'Fundamentos de Ciberseguridad',
+        ),
+      ),
+      GoRoute(
+        path: '/profile',
+        builder: (context, state) => const ProfileScreen(),
+      ),
+      GoRoute(
+        path: '/subject_detail',
+        builder: (context, state) => SubjectDetailScreen(
+          subjectTitle: state.extra as String,
+        ),
+      ),
+      GoRoute(
+        path: '/lesson_content',
+        builder: (context, state) => LessonContentScreen(
+          lessonTitle: state.extra as String,
+        ),
       ),
     ],
   );
-}
-
-// Widget for bottom navigation bar
-class ScaffoldWithBottomBar extends StatelessWidget {
-  final Widget child;
-
-  const ScaffoldWithBottomBar({super.key, required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: child,
-      bottomNavigationBar: const BottomNavegationBar(),
-    );
-  }
 }

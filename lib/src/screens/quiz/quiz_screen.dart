@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uciberseguridad_app/src/blocs/quiz/quiz_bloc.dart';
 import 'package:uciberseguridad_app/src/models/models.dart';
 import 'package:uciberseguridad_app/src/screens/quiz/quiz_results_screen.dart';
+import 'package:uciberseguridad_app/src/widgets/appbar_screen.dart';
+import 'package:uciberseguridad_app/src/widgets/side_menu.dart';
 import 'package:uciberseguridad_app/theme/app_theme.dart';
 
 class QuizScreen extends StatelessWidget {
@@ -20,30 +22,13 @@ class QuizScreen extends StatelessWidget {
     return BlocProvider(
       create: (context) => QuizBloc()..add(LoadQuiz(lessonId)),
       child: Scaffold(
-        appBar: AppBar(
-          backgroundColor: AppTheme.primaryColor,
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Cuestionario',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                lessonTitle,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.normal,
-                ),
-              ),
-            ],
-          ),
+        drawer: const SideMenu(),
+        appBar: const AppBarScreen(
+          title: 'Cuestionario',
         ),
         body: BlocBuilder<QuizBloc, QuizState>(
           builder: (context, state) {
+            Text(lessonTitle);
             if (state is QuizLoading) {
               return const Center(
                 child: CircularProgressIndicator(
