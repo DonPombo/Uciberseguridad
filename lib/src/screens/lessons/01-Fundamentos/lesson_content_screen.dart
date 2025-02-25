@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:uciberseguridad_app/theme/app_theme.dart';
 
 class LessonContentScreen extends StatelessWidget {
@@ -173,6 +174,6 @@ class LessonContentScreen extends StatelessWidget {
   }
 
   void _navigateToQuiz(BuildContext context) {
-    debugPrint('Navegando al cuestionario de: $lessonTitle');
+    context.go('/quiz', extra: {'lessonId': '1', 'lessonTitle': lessonTitle});
   }
 }

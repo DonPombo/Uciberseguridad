@@ -1,16 +1,346 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:uciberseguridad_app/src/blocs/quiz/quiz_bloc.dart';
+import 'package:uciberseguridad_app/src/models/models.dart';
+import 'package:uciberseguridad_app/src/screens/quiz/quiz_results_screen.dart';
+import 'package:uciberseguridad_app/theme/app_theme.dart';
 
 class QuizScreen extends StatelessWidget {
-  const QuizScreen({super.key});
+  final String lessonId;
+  final String lessonTitle;
+
+  const QuizScreen({
+    super.key,
+    required this.lessonId,
+    required this.lessonTitle,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Quiz'),
+    return BlocProvider(
+      create: (context) => QuizBloc()..add(LoadQuiz(lessonId)),
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: AppTheme.primaryColor,
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Cuestionario',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                lessonTitle,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.normal,
+                ),
+              ),
+            ],
+          ),
+        ),
+        body: BlocBuilder<QuizBloc, QuizState>(
+          builder: (context, state) {
+            if (state is QuizLoading) {
+              return const Center(
+                child: CircularProgressIndicator(
+                  color: AppTheme.accentColor,
+                ),
+              );
+            }
+
+            if (state is QuizLoaded) {
+              return _QuizContent(state: state);
+            }
+
+            if (state is QuizError) {
+              return Center(
+                child: Text(
+                  state.message,
+                  style: const TextStyle(color: Colors.red),
+                ),
+              );
+            }
+
+            return const SizedBox.shrink();
+          },
+        ),
       ),
-      body: const Center(
-        child: Text('Quiz'),
+    );
+  }
+}
+
+class _QuizContent extends StatelessWidget {
+  final QuizLoaded state;
+
+  const _QuizContent({
+    required this.state,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (state.isCompleted) {
+      return QuizResultsScreen(
+        quiz: state.quiz,
+        userAnswers: state.userAnswers.map((e) => e ?? -1).toList(),
+        onRetryQuiz: () {
+          context.read<QuizBloc>().add(LoadQuiz(state.quiz.lessonId));
+        },
+        lessonTitle: state.quiz.title,
+      );
+    }
+
+    final currentQuestion = state.quiz.questions[state.currentQuestionIndex];
+    final hasAnsweredCurrent =
+        state.userAnswers[state.currentQuestionIndex] != null;
+
+    return Column(
+      children: [
+        _buildProgressIndicator(),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildQuestionCard(currentQuestion),
+                const SizedBox(height: 24),
+                _buildOptions(context, currentQuestion),
+              ],
+            ),
+          ),
+        ),
+        _buildNavigationButtons(context, hasAnsweredCurrent),
+      ],
+    );
+  }
+
+  Widget _buildProgressIndicator() {
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Pregunta ${state.currentQuestionIndex + 1}/${state.quiz.questions.length}',
+                style: const TextStyle(
+                  color: AppTheme.textColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                '${((state.currentQuestionIndex + 1) / state.quiz.questions.length * 100).toInt()}%',
+                style: TextStyle(
+                  color: AppTheme.textColor.withOpacity(0.7),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: LinearProgressIndicator(
+              value: (state.currentQuestionIndex + 1) /
+                  state.quiz.questions.length,
+              backgroundColor: AppTheme.backgroundColor,
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                AppTheme.accentColor,
+              ),
+              minHeight: 8,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuestionCard(QuizQuestion question) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Text(
+        question.question,
+        style: const TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          color: AppTheme.textColor,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOptions(BuildContext context, QuizQuestion question) {
+    return Column(
+      children: List.generate(
+        question.options.length,
+        (index) => _buildOptionButton(
+          context,
+          question.options[index],
+          index,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavigationButtons(
+      BuildContext context, bool hasAnsweredCurrent) {
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceColor,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          if (state.currentQuestionIndex > 0)
+            ElevatedButton.icon(
+              onPressed: () {
+                context.read<QuizBloc>().add(PreviousQuestion());
+              },
+              icon: const Icon(Icons.arrow_back),
+              label: const Text('Anterior'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.surfaceColor,
+                foregroundColor: AppTheme.textColor,
+              ),
+            )
+          else
+            const SizedBox(width: 100),
+          if (state.currentQuestionIndex < state.quiz.questions.length - 1)
+            ElevatedButton.icon(
+              onPressed: hasAnsweredCurrent
+                  ? () {
+                      context.read<QuizBloc>().add(NextQuestion());
+                    }
+                  : null,
+              icon: const Icon(Icons.arrow_forward),
+              label: const Text('Siguiente'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.accentColor,
+                disabledBackgroundColor: AppTheme.accentColor.withOpacity(0.3),
+              ),
+            )
+          else
+            ElevatedButton.icon(
+              onPressed: _allQuestionsAnswered()
+                  ? () {
+                      context.read<QuizBloc>().add(FinishQuiz());
+                    }
+                  : null,
+              icon: const Icon(Icons.check_circle),
+              label: const Text('Finalizar'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                disabledBackgroundColor: Colors.green.withOpacity(0.3),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  bool _allQuestionsAnswered() {
+    return !state.userAnswers.contains(null);
+  }
+
+  Widget _buildOptionButton(
+    BuildContext context,
+    String option,
+    int index,
+  ) {
+    final isSelected = state.userAnswers[state.currentQuestionIndex] == index;
+    final hasAnswered = state.userAnswers[state.currentQuestionIndex] != null;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: ElevatedButton(
+        onPressed: hasAnswered
+            ? null
+            : () {
+                context.read<QuizBloc>().add(
+                      AnswerQuestion(state.currentQuestionIndex, index),
+                    );
+              },
+        style: ElevatedButton.styleFrom(
+          backgroundColor:
+              isSelected ? AppTheme.accentColor : AppTheme.surfaceColor,
+          padding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 16,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(
+              color: isSelected
+                  ? AppTheme.accentColor
+                  : AppTheme.textColor.withOpacity(0.2),
+            ),
+          ),
+          disabledBackgroundColor: isSelected
+              ? AppTheme.accentColor
+              : AppTheme.surfaceColor.withOpacity(0.7),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isSelected
+                    ? Colors.white
+                    : AppTheme.accentColor.withOpacity(0.1),
+                border: Border.all(
+                  color: isSelected
+                      ? AppTheme.accentColor
+                      : AppTheme.accentColor.withOpacity(0.5),
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  String.fromCharCode(65 + index),
+                  style: TextStyle(
+                    color:
+                        isSelected ? AppTheme.accentColor : AppTheme.textColor,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                option,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : AppTheme.textColor,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

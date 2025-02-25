@@ -24,7 +24,10 @@ class AppRouter {
           ),
           GoRoute(
             path: '/quiz',
-            builder: (context, state) => const QuizScreen(),
+            builder: (context, state) => const QuizScreen(
+              lessonId: '1',
+              lessonTitle: 'Fundamentos de Ciberseguridad',
+            ),
           ),
           GoRoute(
             path: '/profile',
