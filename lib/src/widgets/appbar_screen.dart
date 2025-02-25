@@ -22,7 +22,6 @@ class AppBarScreen extends StatelessWidget implements PreferredSizeWidget {
         return IconButton(
           icon: const Icon(Icons.menu, color: AppTheme.textColor),
           onPressed: () {
-            print('Open drawer');
             Scaffold.of(context).openDrawer();
           },
         );
