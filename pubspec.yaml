@@ -35,6 +35,7 @@ dependencies:
     sdk: flutter
   flutter_bloc: ^9.0.0
   go_router: ^14.8.0
+  supabase_flutter: ^2.8.4
 
 dev_dependencies:
   flutter_lints: ^4.0.0
@@ -51,8 +52,7 @@ flutter:
   uses-material-design: true
   # To add assets to your application, add an assets section, like this:
   assets:
-   - assets/images/
-   
+    - assets/images/
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
   # For details regarding adding assets from package dependencies, see
