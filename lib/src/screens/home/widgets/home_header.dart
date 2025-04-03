@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:uciberseguridad_app/src/services/auth_service.dart';
 import 'package:uciberseguridad_app/theme/app_theme.dart';
 
 class HomeHeader extends StatelessWidget {
@@ -6,6 +7,8 @@ class HomeHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final authService = AuthService();
+    final currentUser = authService.currentUser;
     return Row(
       children: [
         const CircleAvatar(
@@ -18,9 +21,9 @@ class HomeHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Usuario',
-                style: TextStyle(
+              Text(
+                currentUser?.name ?? '',
+                style: const TextStyle(
                   color: AppTheme.textColor,
                   fontSize: 20,
                   fontWeight: FontWeight.bold,

@@ -1,25 +1,24 @@
-enum UserRole { student, admin }
+import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 class User {
   final String id;
   final String name;
   final String email;
-  final UserRole role;
+  final String role;
 
   User({
     required this.id,
     required this.name,
     required this.email,
-    this.role = UserRole.student, // Por defecto, todos son estudiantes
+    this.role = 'student',
   });
 
-  // Factory constructor para crear un User desde Supabase
-  factory User.fromSupabase(Map<String, dynamic> data) {
+  factory User.fromSupabaseUser(supabase.User user) {
     return User(
-      id: data['id'],
-      name: data['name'],
-      email: data['email'],
-      role: data['role'] == 'admin' ? UserRole.admin : UserRole.student,
+      id: user.id,
+      name: user.userMetadata?['name'] ?? '',
+      email: user.email ?? '',
+      role: user.userMetadata?['role'] ?? 'student',
     );
   }
 
@@ -29,7 +28,7 @@ class User {
       'id': id,
       'name': name,
       'email': email,
-      'role': role == UserRole.admin ? 'admin' : 'student',
+      'role': role,
     };
   }
 }

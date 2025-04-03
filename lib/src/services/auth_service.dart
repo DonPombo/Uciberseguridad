@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
-import 'package:uciberseguridad_app/src/models/user.dart';
+import '../models/user.dart';
+import 'package:flutter/foundation.dart';
 
 class AuthService {
   final _supabase = supabase.Supabase.instance.client;
@@ -8,12 +9,7 @@ class AuthService {
   User? get currentUser {
     final user = _supabase.auth.currentUser;
     if (user == null) return null;
-    // TODO: Aquí podrías obtener los datos adicionales del usuario desde la tabla users
-    return User(
-      id: user.id,
-      email: user.email!,
-      name: user.userMetadata?['name'] ?? '',
-    );
+    return User.fromSupabaseUser(user);
   }
 
   // Registro
@@ -23,29 +19,24 @@ class AuthService {
     required String name,
   }) async {
     try {
+      debugPrint('Iniciando registro de usuario...');
       final response = await _supabase.auth.signUp(
         email: email,
         password: password,
-        data: {'name': name},
+        data: {
+          'name': name,
+          'role': 'student',
+        },
       );
 
+      debugPrint('Respuesta de registro recibida');
       if (response.user != null) {
-        // Crear el perfil del usuario en la tabla users
-        await _supabase.from('users').insert({
-          'id': response.user!.id,
-          'name': name,
-          'email': email,
-          'role': 'student',
-        });
-
-        return User(
-          id: response.user!.id,
-          name: name,
-          email: email,
-        );
+        debugPrint('Usuario registrado exitosamente');
+        return User.fromSupabaseUser(response.user!);
       }
       return null;
     } catch (e) {
+      debugPrint('Error en registro: $e');
       throw _handleError(e);
     }
   }
@@ -56,43 +47,125 @@ class AuthService {
     required String password,
   }) async {
     try {
+      debugPrint('Iniciando inicio de sesión...');
       final response = await _supabase.auth.signInWithPassword(
         email: email,
         password: password,
       );
 
+      debugPrint('Respuesta de inicio de sesión recibida');
       if (response.user != null) {
-        final userData = await _supabase
-            .from('users')
-            .select()
-            .eq('id', response.user!.id)
-            .single();
-
-        return User.fromSupabase(userData);
+        debugPrint('Inicio de sesión exitoso');
+        return User.fromSupabaseUser(response.user!);
       }
       return null;
     } catch (e) {
+      debugPrint('Error en inicio de sesión: $e');
       throw _handleError(e);
     }
   }
 
   // Cerrar sesión
   Future<void> signOut() async {
-    await _supabase.auth.signOut();
+    try {
+      debugPrint('Cerrando sesión...');
+      await _supabase.auth.signOut();
+      debugPrint('Sesión cerrada exitosamente');
+    } catch (e) {
+      debugPrint('Error al cerrar sesión: $e');
+      throw _handleError(e);
+    }
   }
 
-  // Manejo de errores
+  // Manejo de errores mejorado
   String _handleError(dynamic error) {
+    debugPrint('Manejando error: $error');
     if (error is supabase.AuthException) {
       switch (error.message) {
         case 'Invalid login credentials':
-          return 'Credenciales inválidas';
-        case 'Email not confirmed':
-          return 'Por favor confirma tu correo electrónico';
+          return 'Correo o contraseña incorrectos';
+        case 'User already registered':
+          return 'Este correo ya está registrado';
         default:
           return 'Error de autenticación: ${error.message}';
       }
     }
     return 'Error inesperado: $error';
+  }
+
+  // Método para verificar si el usuario es admin
+  Future<bool> isUserAdmin() async {
+    try {
+      final user = currentUser;
+      if (user == null) return false;
+
+      final response = await _supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+
+      return response['role'] == 'admin';
+    } catch (e) {
+      debugPrint('Error verificando rol: $e');
+      return false;
+    }
+  }
+
+  // Método para verificar si el usuario es estudiante
+  Future<bool> isUserStudent() async {
+    try {
+      final user = currentUser;
+      if (user == null) return false;
+
+      final response = await _supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+
+      return response['role'] == 'student';
+    } catch (e) {
+      debugPrint('Error verificando rol: $e');
+      return false;
+    }
+  }
+
+  // Método genérico para verificar cualquier rol
+  Future<bool> hasRole(String role) async {
+    try {
+      final user = currentUser;
+      if (user == null) return false;
+
+      final response = await _supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+
+      return response['role'] == role;
+    } catch (e) {
+      debugPrint('Error verificando rol: $e');
+      return false;
+    }
+  }
+
+  // Método para obtener el rol actual del usuario
+  Future<String?> getCurrentUserRole() async {
+    try {
+      final user = currentUser;
+      if (user == null) return null;
+
+      final response = await _supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+
+      return response['role'];
+    } catch (e) {
+      debugPrint('Error obteniendo rol: $e');
+      return null;
+    }
   }
 }

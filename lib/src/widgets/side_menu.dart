@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uciberseguridad_app/theme/app_theme.dart';
+import 'package:uciberseguridad_app/src/services/auth_service.dart';
+import 'package:uciberseguridad_app/src/models/user.dart';
 
 class SideMenu extends StatelessWidget {
   const SideMenu({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final authService = AuthService();
+    final currentUser = authService.currentUser;
+
     return Container(
       width: MediaQuery.of(context).size.width * 0.85,
       decoration: const BoxDecoration(
@@ -15,7 +20,12 @@ class SideMenu extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _buildHeader(),
+          FutureBuilder<String?>(
+            future: authService.getCurrentUserRole(),
+            builder: (context, snapshot) {
+              return _buildHeader(currentUser, snapshot.data);
+            },
+          ),
           const Divider(),
           _buildMenuItem(
             context,
@@ -46,32 +56,59 @@ class SideMenu extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          const CircleAvatar(
-            radius: 40,
-            backgroundColor: AppTheme.accentColor,
-            child: Icon(Icons.person, size: 40, color: Colors.white),
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            'Usuario',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+  Widget _buildHeader(User? currentUser, String? userRole) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            const CircleAvatar(
+              radius: 40,
+              backgroundColor: AppTheme.accentColor,
+              child: Icon(Icons.person, size: 40, color: Colors.white),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Progreso: 55%',
-            style: TextStyle(
-              color: AppTheme.textColor.withOpacity(0.7),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  currentUser?.name ?? 'Usuario',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                if (userRole == 'admin') ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppTheme.secondaryColor,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      'Admin',
+                      style: TextStyle(
+                        color: AppTheme.quaternaryColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
-          ),
-        ],
+            const SizedBox(height: 4),
+            Text(
+              currentUser?.email ?? '',
+              style: TextStyle(
+                color: AppTheme.textColor.withOpacity(0.7),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

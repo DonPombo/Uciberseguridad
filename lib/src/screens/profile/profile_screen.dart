@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:uciberseguridad_app/src/widgets/custom_snackbar.dart';
 import 'package:uciberseguridad_app/theme/app_theme.dart';
 import 'package:uciberseguridad_app/src/services/auth_service.dart';
 import 'package:uciberseguridad_app/src/models/user.dart';
@@ -39,8 +40,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _currentUser = null;
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al cerrar sesión: $e')),
+      showCustomSnackBar(
+        context: context,
+        message: 'Error al cerrar sesión: $e',
+        isError: true,
       );
     }
   }
@@ -78,11 +81,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return _showLogin
           ? LoginScreen(
               onShowRegister: () => setState(() => _showLogin = false),
-              onLoginSuccess: (user) => setState(() => _currentUser = user),
+              onLoginSuccess: (user) {
+                setState(() => _currentUser = user);
+              },
             )
           : RegisterScreen(
               onShowLogin: () => setState(() => _showLogin = true),
-              onRegisterSuccess: (user) => setState(() => _currentUser = user),
+              onRegisterSuccess: (user) {
+                setState(() => _currentUser = user);
+              },
             );
     }
   }
@@ -93,11 +100,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(15),
       ),
-      child: const Padding(
-        padding: EdgeInsets.all(16.0),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            CircleAvatar(
+            const CircleAvatar(
               radius: 50,
               backgroundColor: AppTheme.accentColor,
               child: Icon(
@@ -106,16 +113,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 color: Colors.white,
               ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Text(
-              'Usuario ',
-              style: TextStyle(
+              _currentUser?.name ?? 'Usuario',
+              style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
                 color: AppTheme.textColor,
               ),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
+            Text(
+              _currentUser?.email ?? '',
+              style: TextStyle(
+                fontSize: 16,
+                color: AppTheme.textColor.withOpacity(0.7),
+              ),
+            ),
           ],
         ),
       ),
@@ -271,7 +285,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             'Editar Perfil',
             Icons.edit,
             () {
-              // Implementar edición de perfil
+              // TODO: Implementar edición de perfil
             },
           ),
           const Divider(),
@@ -279,7 +293,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             'Notificaciones',
             Icons.notifications,
             () {
-              // Implementar configuración de notificaciones
+              // TODO: Implementar configuración de notificaciones
             },
           ),
           const Divider(),
