@@ -1,34 +1,36 @@
-
-class Lesson {
+class Subject {
   final String id;
+  final String lessonId;
   final String title;
-  final String description;
-  final String content;
-  final String? videoUrl;
-  final int order;
+  final String? description;
+  final String? duration;
+  final String? iconName;
+  final int orderIndex;
   final DateTime createdAt;
   final bool isActive;
 
-  Lesson({
+  Subject({
     required this.id,
+    required this.lessonId,
     required this.title,
-    required this.description,
-    required this.content,
-    this.videoUrl,
-    required this.order,
+    this.description,
+    this.duration,
+    this.iconName,
+    required this.orderIndex,
     required this.createdAt,
     this.isActive = true,
   });
 
   // Crear desde Supabase
-  factory Lesson.fromMap(Map<String, dynamic> map) {
-    return Lesson(
+  factory Subject.fromMap(Map<String, dynamic> map) {
+    return Subject(
       id: map['id'] ?? '',
+      lessonId: map['lesson_id'] ?? '',
       title: map['title'] ?? '',
-      description: map['description'] ?? '',
-      content: map['content'] ?? '',
-      videoUrl: map['video_url'],
-      order: map['order'] ?? 0,
+      description: map['description'],
+      duration: map['duration'],
+      iconName: map['icon_name'],
+      orderIndex: map['order_index'] ?? 0,
       createdAt:
           DateTime.parse(map['created_at'] ?? DateTime.now().toIso8601String()),
       isActive: map['is_active'] ?? true,
@@ -38,31 +40,33 @@ class Lesson {
   // Convertir a Map para Supabase
   Map<String, dynamic> toMap() {
     return {
+      'lesson_id': lessonId,
       'title': title,
       'description': description,
-      'content': content,
-      'video_url': videoUrl,
-      'order': order,
+      'duration': duration,
+      'icon_name': iconName,
+      'order_index': orderIndex,
       'is_active': isActive,
     };
   }
 
   // Crear una copia del objeto con algunos campos modificados
-  Lesson copyWith({
+  Subject copyWith({
     String? title,
     String? description,
-    String? content,
-    String? videoUrl,
-    int? order,
+    String? duration,
+    String? iconName,
+    int? orderIndex,
     bool? isActive,
   }) {
-    return Lesson(
+    return Subject(
       id: id,
+      lessonId: lessonId,
       title: title ?? this.title,
       description: description ?? this.description,
-      content: content ?? this.content,
-      videoUrl: videoUrl ?? this.videoUrl,
-      order: order ?? this.order,
+      duration: duration ?? this.duration,
+      iconName: iconName ?? this.iconName,
+      orderIndex: orderIndex ?? this.orderIndex,
       createdAt: createdAt,
       isActive: isActive ?? this.isActive,
     );

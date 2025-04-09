@@ -36,10 +36,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _handleSignOut() async {
     try {
       await _authService.signOut();
+      if (!mounted) return;
       setState(() {
         _currentUser = null;
       });
     } catch (e) {
+      if (!mounted) return;
       showCustomSnackBar(
         context: context,
         message: 'Error al cerrar sesión: $e',

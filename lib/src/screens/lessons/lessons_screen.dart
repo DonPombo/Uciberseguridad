@@ -4,72 +4,370 @@ import 'package:uciberseguridad_app/src/screens/lessons/widgets/search_bar.dart'
 import 'package:uciberseguridad_app/src/widgets/appbar_screen.dart';
 import 'package:uciberseguridad_app/src/widgets/side_menu.dart';
 import 'package:uciberseguridad_app/theme/app_theme.dart';
+import 'package:uciberseguridad_app/src/services/auth_service.dart';
+import 'package:uciberseguridad_app/src/services/lesson_service.dart';
+import 'package:uciberseguridad_app/src/models/lesson.dart';
+import 'package:uciberseguridad_app/src/screens/lessons/widgets/lesson_form.dart';
+import 'package:uciberseguridad_app/src/screens/lessons/01-Fundamentos/subject_detail_screen.dart';
 
-class LessonsScreen extends StatelessWidget {
+class LessonsScreen extends StatefulWidget {
   const LessonsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Builder(builder: (context) {
-      return Scaffold(
-        backgroundColor: AppTheme.backgroundColor,
-        drawer: const SideMenu(),
-        appBar: const AppBarScreen(
-          title: 'Lecciones',
-        ),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              buildSearchBar(),
-              const SizedBox(height: 24),
-              _buildLessonsList(),
-            ],
-          ),
-        ),
-      );
+  State<LessonsScreen> createState() => _LessonsScreenState();
+}
+
+class _LessonsScreenState extends State<LessonsScreen> {
+  final AuthService _authService = AuthService();
+  final LessonService _lessonService = LessonService();
+  bool _isAdmin = false;
+  List<Lesson> _lessons = [];
+  bool _isLoading = true;
+  String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAdminStatus();
+    _loadLessons();
+  }
+
+  Future<void> _checkAdminStatus() async {
+    final isAdmin = await _authService.isUserAdmin();
+    setState(() {
+      _isAdmin = isAdmin;
     });
   }
 
-  /// Constructs the main scrollable list of lesson cards.
-  ///
-  /// Each card represents a distinct cybersecurity lesson with:
-  /// - Progress tracking
-  /// - Interactive elements
-  /// - Visual indicators
+  Future<void> _loadLessons() async {
+    setState(() => _isLoading = true);
+    final lessons = await _lessonService.getLessons();
+    setState(() {
+      _lessons = lessons;
+      _isLoading = false;
+    });
+  }
+
+  void _onSearchChanged(String query) {
+    setState(() {
+      _searchQuery = query.toLowerCase();
+    });
+  }
+
+  List<Lesson> get _filteredLessons {
+    if (_searchQuery.isEmpty) return _lessons;
+    return _lessons
+        .where((lesson) =>
+            lesson.title.toLowerCase().contains(_searchQuery) ||
+            lesson.description.toLowerCase().contains(_searchQuery))
+        .toList();
+  }
+
+  void _showCreateLessonDialog() {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Crear Nueva Lección',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              LessonForm(
+                onSubmit: (title, description, content, videoUrl) async {
+                  Navigator.pop(dialogContext);
+                  final lesson = await _lessonService.createLesson(
+                    title: title,
+                    description: description,
+                    content: content,
+                    videoUrl: videoUrl,
+                  );
+                  if (lesson != null && mounted) {
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('Lección creada correctamente')),
+                    );
+                    _loadLessons();
+                  }
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showEditLessonDialog(Lesson lesson) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Editar Lección',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              LessonForm(
+                lesson: lesson,
+                onSubmit: (title, description, content, videoUrl) async {
+                  Navigator.pop(dialogContext);
+                  final success = await _lessonService.updateLesson(
+                    lesson.id,
+                    {
+                      'title': title,
+                      'description': description,
+                      'content': content,
+                      'video_url': videoUrl,
+                    },
+                  );
+                  if (success && mounted) {
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('Lección actualizada correctamente')),
+                    );
+                    _loadLessons();
+                  }
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _deleteLesson(Lesson lesson) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmar eliminación'),
+        content:
+            const Text('¿Estás seguro de que quieres eliminar esta lección?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.red,
+            ),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      final success = await _lessonService.deleteLesson(lesson.id);
+      if (success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Lección eliminada correctamente')),
+        );
+        _loadLessons();
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppTheme.backgroundColor,
+      drawer: const SideMenu(),
+      appBar: const AppBarScreen(
+        title: 'Lecciones',
+      ),
+      floatingActionButton: _isAdmin
+          ? FloatingActionButton(
+              onPressed: _showCreateLessonDialog,
+              backgroundColor: AppTheme.accentColor,
+              child: const Icon(Icons.add),
+            )
+          : null,
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SearchBar(onChanged: _onSearchChanged),
+                  const SizedBox(height: 24),
+                  _buildLessonsList(),
+                ],
+              ),
+            ),
+    );
+  }
+
   Widget _buildLessonsList() {
     return Column(
-      children: [
-        buildLessonItem(
-          'Fundamentos de Ciberseguridad',
-          'Introducción y conceptos básicos',
-          Icons.security,
-          AppTheme.secondaryColor,
-          0.0,
-        ),
-        buildLessonItem(
-          'Contraseñas Seguras',
-          'Gestión y creación de contraseñas fuertes',
-          Icons.password,
-          AppTheme.quaternaryColor,
-          1.0,
-        ),
-        buildLessonItem(
-          'Protección contra Phishing',
-          'Identificación y prevención de estafas',
-          Icons.email,
-          AppTheme.tertiaryColor,
-          0.78,
-        ),
-        buildLessonItem(
-          'Privacidad Digital',
-          'Protección de datos personales',
-          Icons.privacy_tip,
-          AppTheme.quinaryColor,
-          0.35,
-        ),
-      ],
+      children: _filteredLessons.map((lesson) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16.0),
+          child: _buildLessonCard(lesson),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildLessonCard(Lesson lesson) {
+    final progress = 0.0; // TODO: Implementar progreso real
+    final isCompleted = progress == 1.0;
+
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.security,
+                    size: 32,
+                    color: AppTheme.primaryColor,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        lesson.title,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.textColor,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        lesson.description,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: AppTheme.textColor.withOpacity(0.7),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (_isAdmin)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon:
+                            const Icon(Icons.edit, color: AppTheme.accentColor),
+                        onPressed: () => _showEditLessonDialog(lesson),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () => _deleteLesson(lesson),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    backgroundColor: AppTheme.backgroundColor,
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(AppTheme.accentColor),
+                    minHeight: 8,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${(progress * 100).toInt()}% Completado',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppTheme.textColor.withOpacity(0.7),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => SubjectDetailScreen(
+                          lessonId: lesson.id,
+                          subjectTitle: lesson.title,
+                        ),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        isCompleted ? Colors.green : AppTheme.accentColor,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: Text(
+                    isCompleted ? 'Completado' : 'Empezar',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

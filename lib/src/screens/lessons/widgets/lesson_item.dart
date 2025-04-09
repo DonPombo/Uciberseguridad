@@ -14,6 +14,8 @@ import 'package:uciberseguridad_app/theme/app_theme.dart';
 /// - [icon] - MaterialIcon representing the lesson category
 /// - [color] - Theme color for visual distinction
 /// - [progress] - Completion percentage (0.0 to 1.0)
+/// - [lessonId] - Unique identifier for the lesson
+/// - [onTap] - Callback function when the card is tapped
 ///
 /// The card's action button shows different states:
 /// - "Empezar" (0% progress)
@@ -25,13 +27,13 @@ Widget buildLessonItem(
   IconData icon,
   Color color,
   double progress,
-) {
+  String lessonId, {
+  VoidCallback? onTap,
+}) {
   final String buttonText = _determineButtonText(progress);
 
   return InkWell(
-    onTap: () {
-      debugPrint('Navigating to lesson: $title');
-    },
+    onTap: onTap,
     child: Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -51,7 +53,7 @@ Widget buildLessonItem(
           const SizedBox(height: 8),
 
           // Action section with responsive layout
-          buildActionSection(progress, buttonText, title),
+          buildActionSection(progress, buttonText, title, lessonId),
         ],
       ),
     ),

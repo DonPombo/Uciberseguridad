@@ -28,15 +28,25 @@ class AppRouter {
       ),
       GoRoute(
         path: '/subject_detail',
-        builder: (context, state) => SubjectDetailScreen(
-          subjectTitle: state.extra as String,
-        ),
+        builder: (context, state) {
+          final Map<String, dynamic> extra =
+              state.extra as Map<String, dynamic>;
+          return SubjectDetailScreen(
+            lessonId: extra['lessonId'] as String,
+            subjectTitle: extra['subjectTitle'] as String,
+          );
+        },
       ),
       GoRoute(
         path: '/lesson_content',
-        builder: (context, state) => LessonContentScreen(
-          lessonTitle: state.extra as String,
-        ),
+        builder: (context, state) {
+          final Map<String, dynamic> extra =
+              state.extra as Map<String, dynamic>;
+          return LessonContentScreen(
+            lessonTitle: extra['lessonTitle'] as String,
+            subjectId: extra['subjectId'] as String,
+          );
+        },
       ),
     ],
   );

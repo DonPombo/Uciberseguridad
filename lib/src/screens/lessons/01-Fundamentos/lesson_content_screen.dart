@@ -1,14 +1,291 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uciberseguridad_app/theme/app_theme.dart';
+import 'package:uciberseguridad_app/src/services/auth_service.dart';
+import 'package:uciberseguridad_app/src/services/lesson_content_service.dart';
+import 'package:uciberseguridad_app/src/models/lesson_content.dart';
 
-class LessonContentScreen extends StatelessWidget {
+class LessonContentScreen extends StatefulWidget {
   final String lessonTitle;
+  final String subjectId;
 
   const LessonContentScreen({
     super.key,
     required this.lessonTitle,
+    required this.subjectId,
   });
+
+  @override
+  State<LessonContentScreen> createState() => _LessonContentScreenState();
+}
+
+class _LessonContentScreenState extends State<LessonContentScreen> {
+  final LessonContentService _contentService = LessonContentService();
+  final AuthService _authService = AuthService();
+  bool _isAdmin = false;
+  List<LessonContent> _contents = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAdminStatus();
+    _loadContents();
+  }
+
+  Future<void> _checkAdminStatus() async {
+    final isAdmin = await _authService.isUserAdmin();
+    setState(() {
+      _isAdmin = isAdmin;
+    });
+  }
+
+  Future<void> _loadContents() async {
+    setState(() => _isLoading = true);
+    final contents = await _contentService.getContents(widget.subjectId);
+    setState(() {
+      _contents = contents;
+      _isLoading = false;
+    });
+  }
+
+  void _showCreateContentDialog() {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Crear Nuevo Contenido',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              _buildContentForm(
+                onSubmit: (title, contentType, content, videoUrl) async {
+                  Navigator.pop(dialogContext);
+                  final newContent = await _contentService.createContent(
+                    subjectId: widget.subjectId,
+                    title: title,
+                    contentType: contentType,
+                    content: content,
+                    videoUrl: videoUrl,
+                  );
+                  if (newContent != null && mounted) {
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('Contenido creado correctamente')),
+                    );
+                    _loadContents();
+                  }
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showEditContentDialog(LessonContent content) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Editar Contenido',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              _buildContentForm(
+                content: content,
+                onSubmit: (title, contentType, contentText, videoUrl) async {
+                  Navigator.pop(dialogContext);
+                  final success = await _contentService.updateContent(
+                    content.id,
+                    {
+                      'title': title,
+                      'content_type': contentType.toString().split('.').last,
+                      'content': contentText,
+                      'video_url': videoUrl,
+                    },
+                  );
+                  if (success && mounted) {
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('Contenido actualizado correctamente')),
+                    );
+                    _loadContents();
+                  }
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _deleteContent(LessonContent content) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmar eliminación'),
+        content:
+            const Text('¿Estás seguro de que quieres eliminar este contenido?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.red,
+            ),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      final success = await _contentService.deleteContent(content.id);
+      if (success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Contenido eliminado correctamente')),
+        );
+        _loadContents();
+      }
+    }
+  }
+
+  Widget _buildContentForm({
+    LessonContent? content,
+    required Function(String title, ContentType contentType, String content,
+            String? videoUrl)
+        onSubmit,
+  }) {
+    final _formKey = GlobalKey<FormState>();
+    final _titleController = TextEditingController(text: content?.title);
+    final _contentController = TextEditingController(text: content?.content);
+    final _videoUrlController = TextEditingController(text: content?.videoUrl);
+    ContentType _selectedType = content?.contentType ?? ContentType.book;
+
+    return Form(
+      key: _formKey,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextFormField(
+            controller: _titleController,
+            decoration: const InputDecoration(
+              labelText: 'Título',
+              border: OutlineInputBorder(),
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Por favor ingresa un título';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+          DropdownButtonFormField<ContentType>(
+            value: _selectedType,
+            decoration: const InputDecoration(
+              labelText: 'Tipo de Contenido',
+              border: OutlineInputBorder(),
+            ),
+            items: ContentType.values.map((type) {
+              return DropdownMenuItem(
+                value: type,
+                child: Text(type.toString().split('.').last),
+              );
+            }).toList(),
+            onChanged: (value) {
+              if (value != null) {
+                setState(() {
+                  _selectedType = value;
+                });
+              }
+            },
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _contentController,
+            decoration: const InputDecoration(
+              labelText: 'Contenido',
+              border: OutlineInputBorder(),
+            ),
+            maxLines: 5,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Por favor ingresa el contenido';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _videoUrlController,
+            decoration: const InputDecoration(
+              labelText: 'URL del Video (opcional)',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                if (_formKey.currentState!.validate()) {
+                  onSubmit(
+                    _titleController.text,
+                    _selectedType,
+                    _contentController.text,
+                    _videoUrlController.text.isEmpty
+                        ? null
+                        : _videoUrlController.text,
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.accentColor,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+              child: Text(
+                content == null ? 'Crear Contenido' : 'Actualizar Contenido',
+                style: const TextStyle(fontSize: 16),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +303,9 @@ class LessonContentScreen extends StatelessWidget {
                     children: [
                       _buildQuizButton(context),
                       const SizedBox(height: 24),
-                      _buildContent(),
+                      _isLoading
+                          ? const Center(child: CircularProgressIndicator())
+                          : _buildContentList(),
                       const SizedBox(height: 32),
                       _buildBottomQuizButton(context),
                     ],
@@ -37,6 +316,13 @@ class LessonContentScreen extends StatelessWidget {
           ),
         ],
       ),
+      floatingActionButton: _isAdmin
+          ? FloatingActionButton(
+              onPressed: _showCreateContentDialog,
+              backgroundColor: AppTheme.accentColor,
+              child: const Icon(Icons.add),
+            )
+          : null,
     );
   }
 
@@ -46,7 +332,7 @@ class LessonContentScreen extends StatelessWidget {
       expandedHeight: 200,
       flexibleSpace: FlexibleSpaceBar(
         title: Text(
-          lessonTitle,
+          widget.lessonTitle,
           style: const TextStyle(color: Colors.white),
         ),
         background: Container(
@@ -97,49 +383,75 @@ class LessonContentScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildContent() {
+  Widget _buildContentList() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildSection(
-          'Introducción',
-          'La ciberseguridad es fundamental en la era digital actual. Protege la información y los sistemas de posibles amenazas y ataques cibernéticos.',
-        ),
-        const SizedBox(height: 24),
-        _buildSection(
-          'Conceptos Básicos',
-          '• Confidencialidad: Garantizar que la información sea accesible solo para personas autorizadas.\n'
-              '• Integridad: Mantener la exactitud y totalidad de la información.\n'
-              '• Disponibilidad: Asegurar el acceso a la información cuando sea necesario.',
-        ),
-        const SizedBox(height: 24),
-        _buildSection(
-          'Importancia',
-          'La ciberseguridad es crucial para:\n'
-              '• Proteger datos sensibles\n'
-              '• Prevenir pérdidas financieras\n'
-              '• Mantener la confianza de los usuarios\n'
-              '• Cumplir con regulaciones legales',
-        ),
-      ],
+      children: _contents.map((content) {
+        return _buildContentItem(content);
+      }).toList(),
     );
   }
 
-  Widget _buildSection(String title, String content) {
-    return Column(
+  Widget _buildContentItem(LessonContent content) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
+          ListTile(
+            title: Text(
+              content.title,
           style: const TextStyle(
-            fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: AppTheme.textColor,
+                fontSize: 18,
+              ),
+            ),
+            subtitle: Text(
+              content.contentType.toString().split('.').last,
+              style: TextStyle(
+                color: AppTheme.textColor.withOpacity(0.6),
+              ),
+            ),
+            trailing: _isAdmin
+                ? Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon:
+                            const Icon(Icons.edit, color: AppTheme.accentColor),
+                        onPressed: () => _showEditContentDialog(content),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () => _deleteContent(content),
+                      ),
+                    ],
+                  )
+                : null,
           ),
-        ),
-        const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (content.contentType == ContentType.video &&
+                    content.videoUrl != null)
+                  AspectRatio(
+                    aspectRatio: 16 / 9,
+                    child: Container(
+                      color: Colors.black,
+                      child: const Center(
+                        child: Icon(
+                          Icons.play_circle_outline,
+                          size: 48,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 16),
         Text(
-          content,
+                  content.content,
           style: TextStyle(
             fontSize: 16,
             color: AppTheme.textColor.withOpacity(0.8),
@@ -147,6 +459,10 @@ class LessonContentScreen extends StatelessWidget {
           ),
         ),
       ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -174,6 +490,9 @@ class LessonContentScreen extends StatelessWidget {
   }
 
   void _navigateToQuiz(BuildContext context) {
-    context.go('/quiz', extra: {'lessonId': '1', 'lessonTitle': lessonTitle});
+    context.go('/quiz', extra: {
+      'lessonId': widget.subjectId,
+      'lessonTitle': widget.lessonTitle
+    });
   }
 }
