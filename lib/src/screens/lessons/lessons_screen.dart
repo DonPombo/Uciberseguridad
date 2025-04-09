@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:uciberseguridad_app/src/screens/lessons/widgets/lesson_item.dart';
-import 'package:uciberseguridad_app/src/screens/lessons/widgets/search_bar.dart';
 import 'package:uciberseguridad_app/src/widgets/appbar_screen.dart';
 import 'package:uciberseguridad_app/src/widgets/side_menu.dart';
 import 'package:uciberseguridad_app/theme/app_theme.dart';
 import 'package:uciberseguridad_app/src/services/auth_service.dart';
 import 'package:uciberseguridad_app/src/services/lesson_service.dart';
 import 'package:uciberseguridad_app/src/models/lesson.dart';
-import 'package:uciberseguridad_app/src/screens/lessons/widgets/lesson_form.dart';
 import 'package:uciberseguridad_app/src/screens/lessons/01-Fundamentos/subject_detail_screen.dart';
 
 class LessonsScreen extends StatefulWidget {
@@ -64,6 +61,10 @@ class _LessonsScreenState extends State<LessonsScreen> {
   }
 
   void _showCreateLessonDialog() {
+    final formKey = GlobalKey<FormState>();
+    final titleController = TextEditingController();
+    final descriptionController = TextEditingController();
+
     showDialog(
       context: context,
       builder: (dialogContext) => Dialog(
@@ -72,38 +73,81 @@ class _LessonsScreenState extends State<LessonsScreen> {
         ),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Crear Nueva Lección',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Crear Nueva Lección',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              LessonForm(
-                onSubmit: (title, description, content, videoUrl) async {
-                  Navigator.pop(dialogContext);
-                  final lesson = await _lessonService.createLesson(
-                    title: title,
-                    description: description,
-                    content: content,
-                    videoUrl: videoUrl,
-                  );
-                  if (lesson != null && mounted) {
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Lección creada correctamente')),
-                    );
-                    _loadLessons();
-                  }
-                },
-              ),
-            ],
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: titleController,
+                  decoration: const InputDecoration(
+                    labelText: 'Título',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Por favor ingresa un título';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: descriptionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Descripción',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 3,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Por favor ingresa una descripción';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      if (formKey.currentState!.validate()) {
+                        Navigator.pop(dialogContext);
+                        final lesson = await _lessonService.createLesson(
+                          title: titleController.text,
+                          description: descriptionController.text,
+                        );
+                        if (lesson != null && mounted) {
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Lección creada correctamente')),
+                          );
+                          _loadLessons();
+                        }
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.accentColor,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: const Text(
+                      'Crear Lección',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -111,6 +155,11 @@ class _LessonsScreenState extends State<LessonsScreen> {
   }
 
   void _showEditLessonDialog(Lesson lesson) {
+    final formKey = GlobalKey<FormState>();
+    final titleController = TextEditingController(text: lesson.title);
+    final descriptionController =
+        TextEditingController(text: lesson.description);
+
     showDialog(
       context: context,
       builder: (dialogContext) => Dialog(
@@ -119,42 +168,85 @@ class _LessonsScreenState extends State<LessonsScreen> {
         ),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Editar Lección',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Editar Lección',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              LessonForm(
-                lesson: lesson,
-                onSubmit: (title, description, content, videoUrl) async {
-                  Navigator.pop(dialogContext);
-                  final success = await _lessonService.updateLesson(
-                    lesson.id,
-                    {
-                      'title': title,
-                      'description': description,
-                      'content': content,
-                      'video_url': videoUrl,
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: titleController,
+                  decoration: const InputDecoration(
+                    labelText: 'Título',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Por favor ingresa un título';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: descriptionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Descripción',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 3,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Por favor ingresa una descripción';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      if (formKey.currentState!.validate()) {
+                        Navigator.pop(dialogContext);
+                        final success = await _lessonService.updateLesson(
+                          lesson.id,
+                          {
+                            'title': titleController.text,
+                            'description': descriptionController.text,
+                          },
+                        );
+                        if (success && mounted) {
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content:
+                                    Text('Lección actualizada correctamente')),
+                          );
+                          _loadLessons();
+                        }
+                      }
                     },
-                  );
-                  if (success && mounted) {
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Lección actualizada correctamente')),
-                    );
-                    _loadLessons();
-                  }
-                },
-              ),
-            ],
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.accentColor,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: const Text(
+                      'Actualizar Lección',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

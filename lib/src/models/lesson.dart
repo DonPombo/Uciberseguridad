@@ -1,10 +1,7 @@
-
 class Lesson {
   final String id;
   final String title;
   final String description;
-  final String content;
-  final String? videoUrl;
   final int order;
   final DateTime createdAt;
   final bool isActive;
@@ -13,8 +10,6 @@ class Lesson {
     required this.id,
     required this.title,
     required this.description,
-    required this.content,
-    this.videoUrl,
     required this.order,
     required this.createdAt,
     this.isActive = true,
@@ -26,8 +21,6 @@ class Lesson {
       id: map['id'] ?? '',
       title: map['title'] ?? '',
       description: map['description'] ?? '',
-      content: map['content'] ?? '',
-      videoUrl: map['video_url'],
       order: map['order'] ?? 0,
       createdAt:
           DateTime.parse(map['created_at'] ?? DateTime.now().toIso8601String()),
@@ -40,8 +33,6 @@ class Lesson {
     return {
       'title': title,
       'description': description,
-      'content': content,
-      'video_url': videoUrl,
       'order': order,
       'is_active': isActive,
     };
@@ -51,8 +42,6 @@ class Lesson {
   Lesson copyWith({
     String? title,
     String? description,
-    String? content,
-    String? videoUrl,
     int? order,
     bool? isActive,
   }) {
@@ -60,8 +49,6 @@ class Lesson {
       id: id,
       title: title ?? this.title,
       description: description ?? this.description,
-      content: content ?? this.content,
-      videoUrl: videoUrl ?? this.videoUrl,
       order: order ?? this.order,
       createdAt: createdAt,
       isActive: isActive ?? this.isActive,

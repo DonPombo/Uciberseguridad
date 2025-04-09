@@ -4,9 +4,7 @@ import 'package:uciberseguridad_app/theme/app_theme.dart';
 
 class LessonForm extends StatefulWidget {
   final Lesson? lesson;
-  final Function(
-          String title, String description, String content, String? videoUrl)
-      onSubmit;
+  final Function(String title, String description) onSubmit;
   final bool isLoading;
 
   const LessonForm({
@@ -24,8 +22,6 @@ class _LessonFormState extends State<LessonForm> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _titleController;
   late TextEditingController _descriptionController;
-  late TextEditingController _contentController;
-  late TextEditingController _videoUrlController;
 
   @override
   void initState() {
@@ -33,16 +29,12 @@ class _LessonFormState extends State<LessonForm> {
     _titleController = TextEditingController(text: widget.lesson?.title);
     _descriptionController =
         TextEditingController(text: widget.lesson?.description);
-    _contentController = TextEditingController(text: widget.lesson?.content);
-    _videoUrlController = TextEditingController(text: widget.lesson?.videoUrl);
   }
 
   @override
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
-    _contentController.dispose();
-    _videoUrlController.dispose();
     super.dispose();
   }
 
@@ -51,8 +43,6 @@ class _LessonFormState extends State<LessonForm> {
       widget.onSubmit(
         _titleController.text,
         _descriptionController.text,
-        _contentController.text,
-        _videoUrlController.text.isEmpty ? null : _videoUrlController.text,
       );
     }
   }
@@ -84,35 +74,13 @@ class _LessonFormState extends State<LessonForm> {
               labelText: 'Descripción',
               border: OutlineInputBorder(),
             ),
+            maxLines: 3,
             validator: (value) {
               if (value == null || value.isEmpty) {
                 return 'Por favor ingresa una descripción';
               }
               return null;
             },
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _contentController,
-            decoration: const InputDecoration(
-              labelText: 'Contenido',
-              border: OutlineInputBorder(),
-            ),
-            maxLines: 5,
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Por favor ingresa el contenido';
-              }
-              return null;
-            },
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _videoUrlController,
-            decoration: const InputDecoration(
-              labelText: 'URL del video (opcional)',
-              border: OutlineInputBorder(),
-            ),
           ),
           const SizedBox(height: 24),
           SizedBox(

@@ -70,7 +70,7 @@ class _LessonContentScreenState extends State<LessonContentScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              _buildContentForm(
+              _ContentForm(
                 onSubmit: (title, contentType, content, videoUrl) async {
                   Navigator.pop(dialogContext);
                   final newContent = await _contentService.createContent(
@@ -118,7 +118,7 @@ class _LessonContentScreenState extends State<LessonContentScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              _buildContentForm(
+              _ContentForm(
                 content: content,
                 onSubmit: (title, contentType, contentText, videoUrl) async {
                   Navigator.pop(dialogContext);
@@ -180,111 +180,6 @@ class _LessonContentScreenState extends State<LessonContentScreen> {
         _loadContents();
       }
     }
-  }
-
-  Widget _buildContentForm({
-    LessonContent? content,
-    required Function(String title, ContentType contentType, String content,
-            String? videoUrl)
-        onSubmit,
-  }) {
-    final _formKey = GlobalKey<FormState>();
-    final _titleController = TextEditingController(text: content?.title);
-    final _contentController = TextEditingController(text: content?.content);
-    final _videoUrlController = TextEditingController(text: content?.videoUrl);
-    ContentType _selectedType = content?.contentType ?? ContentType.book;
-
-    return Form(
-      key: _formKey,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextFormField(
-            controller: _titleController,
-            decoration: const InputDecoration(
-              labelText: 'Título',
-              border: OutlineInputBorder(),
-            ),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Por favor ingresa un título';
-              }
-              return null;
-            },
-          ),
-          const SizedBox(height: 16),
-          DropdownButtonFormField<ContentType>(
-            value: _selectedType,
-            decoration: const InputDecoration(
-              labelText: 'Tipo de Contenido',
-              border: OutlineInputBorder(),
-            ),
-            items: ContentType.values.map((type) {
-              return DropdownMenuItem(
-                value: type,
-                child: Text(type.toString().split('.').last),
-              );
-            }).toList(),
-            onChanged: (value) {
-              if (value != null) {
-                setState(() {
-                  _selectedType = value;
-                });
-              }
-            },
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _contentController,
-            decoration: const InputDecoration(
-              labelText: 'Contenido',
-              border: OutlineInputBorder(),
-            ),
-            maxLines: 5,
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Por favor ingresa el contenido';
-              }
-              return null;
-            },
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _videoUrlController,
-            decoration: const InputDecoration(
-              labelText: 'URL del Video (opcional)',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {
-                if (_formKey.currentState!.validate()) {
-                  onSubmit(
-                    _titleController.text,
-                    _selectedType,
-                    _contentController.text,
-                    _videoUrlController.text.isEmpty
-                        ? null
-                        : _videoUrlController.text,
-                  );
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.accentColor,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-              child: Text(
-                content == null ? 'Crear Contenido' : 'Actualizar Contenido',
-                style: const TextStyle(fontSize: 16),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
@@ -396,13 +291,13 @@ class _LessonContentScreenState extends State<LessonContentScreen> {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           ListTile(
             title: Text(
               content.title,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
                 fontSize: 18,
               ),
             ),
@@ -450,15 +345,15 @@ class _LessonContentScreenState extends State<LessonContentScreen> {
                     ),
                   ),
                 const SizedBox(height: 16),
-        Text(
+                Text(
                   content.content,
-          style: TextStyle(
-            fontSize: 16,
-            color: AppTheme.textColor.withOpacity(0.8),
-            height: 1.5,
-          ),
-        ),
-      ],
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: AppTheme.textColor.withOpacity(0.8),
+                    height: 1.5,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -494,5 +389,217 @@ class _LessonContentScreenState extends State<LessonContentScreen> {
       'lessonId': widget.subjectId,
       'lessonTitle': widget.lessonTitle
     });
+  }
+}
+
+class _ContentForm extends StatefulWidget {
+  final LessonContent? content;
+  final Function(String title, ContentType contentType, String content,
+      String? videoUrl) onSubmit;
+
+  const _ContentForm({
+    this.content,
+    required this.onSubmit,
+  });
+
+  @override
+  State<_ContentForm> createState() => _ContentFormState();
+}
+
+class _ContentFormState extends State<_ContentForm> {
+  final _formKey = GlobalKey<FormState>();
+  late TextEditingController _titleController;
+  late TextEditingController _contentController;
+  late TextEditingController _videoUrlController;
+  late ContentType _selectedType;
+  String _videoSource = 'url';
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController(text: widget.content?.title);
+    _contentController = TextEditingController(text: widget.content?.content);
+    _videoUrlController = TextEditingController(text: widget.content?.videoUrl);
+    _selectedType = widget.content?.contentType ?? ContentType.text;
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _contentController.dispose();
+    _videoUrlController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Form(
+      key: _formKey,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextFormField(
+            controller: _titleController,
+            decoration: const InputDecoration(
+              labelText: 'Título',
+              border: OutlineInputBorder(),
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Por favor ingresa un título';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+          if (widget.content == null) ...[
+            DropdownButtonFormField<ContentType>(
+              value: _selectedType,
+              decoration: const InputDecoration(
+                labelText: 'Tipo de Contenido',
+                border: OutlineInputBorder(),
+              ),
+              items: const [
+                DropdownMenuItem(
+                  value: ContentType.text,
+                  child: Text('Texto'),
+                ),
+                DropdownMenuItem(
+                  value: ContentType.video,
+                  child: Text('Video'),
+                ),
+              ],
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() {
+                    _selectedType = value;
+                  });
+                }
+              },
+            ),
+            const SizedBox(height: 16),
+          ],
+          if (_selectedType == ContentType.text)
+            TextFormField(
+              controller: _contentController,
+              decoration: const InputDecoration(
+                labelText: 'Contenido',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 10,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Por favor ingresa el contenido';
+                }
+                return null;
+              },
+            )
+          else ...[
+            // Opciones para video
+            Row(
+              children: [
+                Expanded(
+                  child: RadioListTile<String>(
+                    title: const Text('URL del Video'),
+                    value: 'url',
+                    groupValue: _videoSource,
+                    onChanged: (value) {
+                      setState(() {
+                        _videoSource = value!;
+                      });
+                    },
+                  ),
+                ),
+                Expanded(
+                  child: RadioListTile<String>(
+                    title: const Text('Subir Video'),
+                    value: 'upload',
+                    groupValue: _videoSource,
+                    onChanged: (value) {
+                      setState(() {
+                        _videoSource = value!;
+                      });
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (_videoSource == 'url')
+              TextFormField(
+                controller: _videoUrlController,
+                decoration: const InputDecoration(
+                  labelText: 'URL del Video',
+                  border: OutlineInputBorder(),
+                  hintText: 'Ej: https://www.youtube.com/watch?v=...',
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Por favor ingresa la URL del video';
+                  }
+                  return null;
+                },
+              )
+            else
+              Column(
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      // TODO: Implementar la selección de video
+                    },
+                    icon: const Icon(Icons.upload_file),
+                    label: const Text('Seleccionar Video'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.accentColor,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Formatos soportados: MP4, MOV, AVI',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ],
+              ),
+          ],
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                if (_formKey.currentState!.validate()) {
+                  widget.onSubmit(
+                    _titleController.text,
+                    _selectedType,
+                    _selectedType == ContentType.text
+                        ? _contentController.text
+                        : _videoUrlController.text,
+                    _selectedType == ContentType.video
+                        ? _videoUrlController.text
+                        : null,
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.accentColor,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+              child: Text(
+                widget.content == null
+                    ? 'Crear Contenido'
+                    : 'Actualizar Contenido',
+                style: const TextStyle(fontSize: 16),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

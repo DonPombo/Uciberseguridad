@@ -80,8 +80,6 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                     lessonId: widget.lessonId,
                     title: title,
                     description: description,
-                    duration: duration,
-                    iconName: iconName,
                   );
                   if (subject != null && mounted) {
                     if (!mounted) return;
@@ -195,8 +193,6 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
     final _titleController = TextEditingController(text: subject?.title);
     final _descriptionController =
         TextEditingController(text: subject?.description);
-    final _durationController = TextEditingController(text: subject?.duration);
-    final _iconNameController = TextEditingController(text: subject?.iconName);
 
     return Form(
       key: _formKey,
@@ -220,26 +216,10 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
           TextFormField(
             controller: _descriptionController,
             decoration: const InputDecoration(
-              labelText: 'Descripción',
+              labelText: 'Descripción (opcional)',
               border: OutlineInputBorder(),
             ),
             maxLines: 3,
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _durationController,
-            decoration: const InputDecoration(
-              labelText: 'Duración (opcional)',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _iconNameController,
-            decoration: const InputDecoration(
-              labelText: 'Nombre del ícono (opcional)',
-              border: OutlineInputBorder(),
-            ),
           ),
           const SizedBox(height: 24),
           SizedBox(
@@ -252,12 +232,8 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                     _descriptionController.text.isEmpty
                         ? null
                         : _descriptionController.text,
-                    _durationController.text.isEmpty
-                        ? null
-                        : _durationController.text,
-                    _iconNameController.text.isEmpty
-                        ? null
-                        : _iconNameController.text,
+                    null, // duration
+                    null, // iconName
                   );
                 }
               },

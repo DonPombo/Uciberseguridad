@@ -27,8 +27,6 @@ class LessonService {
   Future<Lesson?> createLesson({
     required String title,
     required String description,
-    required String content,
-    String? videoUrl,
   }) async {
     try {
       // Obtener el último orden
@@ -39,8 +37,8 @@ class LessonService {
           .insert({
             'title': title,
             'description': description,
-            'content': content,
-            'video_url': videoUrl,
+            'content':
+                '', // Valor por defecto para satisfacer la restricción NOT NULL
             'order': lastOrder + 1,
             'is_active': true,
           })

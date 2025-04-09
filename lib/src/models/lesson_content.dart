@@ -1,4 +1,4 @@
-enum ContentType { text, video, quiz, book }
+enum ContentType { text, video }
 
 class LessonContent {
   final String id;
@@ -6,7 +6,7 @@ class LessonContent {
   final ContentType contentType;
   final String content;
   final String? videoUrl;
-  final int order;
+  final int orderIndex;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -16,7 +16,7 @@ class LessonContent {
     required this.contentType,
     required this.content,
     this.videoUrl,
-    required this.order,
+    required this.orderIndex,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -31,7 +31,7 @@ class LessonContent {
       ),
       content: map['content'] as String,
       videoUrl: map['video_url'] as String?,
-      order: map['order'] as int,
+      orderIndex: map['order_index'] as int,
       createdAt: DateTime.parse(map['created_at'] as String),
       updatedAt: DateTime.parse(map['updated_at'] as String),
     );
@@ -43,7 +43,7 @@ class LessonContent {
       'content_type': contentType.toString().split('.').last,
       'content': content,
       'video_url': videoUrl,
-      'order': order,
+      'order_index': orderIndex,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
@@ -55,7 +55,7 @@ class LessonContent {
     ContentType? contentType,
     String? content,
     String? videoUrl,
-    int? order,
+    int? orderIndex,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -65,7 +65,7 @@ class LessonContent {
       contentType: contentType ?? this.contentType,
       content: content ?? this.content,
       videoUrl: videoUrl ?? this.videoUrl,
-      order: order ?? this.order,
+      orderIndex: orderIndex ?? this.orderIndex,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

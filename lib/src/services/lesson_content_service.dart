@@ -12,7 +12,7 @@ class LessonContentService {
           .select()
           .eq('subject_id', subjectId)
           .eq('is_active', true)
-          .order('order');
+          .order('order_index');
 
       return (response as List)
           .map((content) => LessonContent.fromMap(content, id: content['id']))
@@ -44,7 +44,7 @@ class LessonContentService {
             'content_type': contentType.toString().split('.').last,
             'content': content,
             'video_url': videoUrl,
-            'order': lastOrder + 1,
+            'order_index': lastOrder + 1,
             'created_at': now,
             'updated_at': now,
             'is_active': true,
@@ -92,14 +92,14 @@ class LessonContentService {
     try {
       final response = await _supabase
           .from('contents')
-          .select('order')
+          .select('order_index')
           .eq('subject_id', subjectId)
           .eq('is_active', true)
-          .order('order', ascending: false)
+          .order('order_index', ascending: false)
           .limit(1)
           .single();
 
-      return (response['order'] as int?) ?? 0;
+      return (response['order_index'] as int?) ?? 0;
     } catch (e) {
       return 0;
     }
