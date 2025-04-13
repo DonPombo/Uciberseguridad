@@ -189,18 +189,18 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
             String? iconName)
         onSubmit,
   }) {
-    final _formKey = GlobalKey<FormState>();
-    final _titleController = TextEditingController(text: subject?.title);
-    final _descriptionController =
+    final formKey = GlobalKey<FormState>();
+    final titleController = TextEditingController(text: subject?.title);
+    final descriptionController =
         TextEditingController(text: subject?.description);
 
     return Form(
-      key: _formKey,
+      key: formKey,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           TextFormField(
-            controller: _titleController,
+            controller: titleController,
             decoration: const InputDecoration(
               labelText: 'Título',
               border: OutlineInputBorder(),
@@ -214,7 +214,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
           ),
           const SizedBox(height: 16),
           TextFormField(
-            controller: _descriptionController,
+            controller: descriptionController,
             decoration: const InputDecoration(
               labelText: 'Descripción (opcional)',
               border: OutlineInputBorder(),
@@ -226,12 +226,12 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () {
-                if (_formKey.currentState!.validate()) {
+                if (formKey.currentState!.validate()) {
                   onSubmit(
-                    _titleController.text,
-                    _descriptionController.text.isEmpty
+                    titleController.text,
+                    descriptionController.text.isEmpty
                         ? null
-                        : _descriptionController.text,
+                        : descriptionController.text,
                     null, // duration
                     null, // iconName
                   );
@@ -358,8 +358,10 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
     if (_selectedTabIndex == 0) {
       return _buildLessonsList();
     } else if (_selectedTabIndex == 1) {
+      // TODO: Agregar recursos
       return const Center(child: Text('Recursos (Próximamente)'));
     } else {
+      // TODO: Agregar laboratorios
       return const Center(child: Text('Laboratorios (Próximamente)'));
     }
   }
@@ -475,6 +477,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
     );
   }
 
+  // TODO: Agregar iconos
   IconData _getIconData(String? iconName) {
     if (iconName == null) return Icons.article;
 

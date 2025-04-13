@@ -2,6 +2,7 @@ enum ContentType { text, video }
 
 class LessonContent {
   final String id;
+  final String subjectId;
   final String title;
   final ContentType contentType;
   final String content;
@@ -12,6 +13,7 @@ class LessonContent {
 
   LessonContent({
     required this.id,
+    required this.subjectId,
     required this.title,
     required this.contentType,
     required this.content,
@@ -25,6 +27,7 @@ class LessonContent {
       {required String id}) {
     return LessonContent(
       id: id,
+      subjectId: map['subject_id'] as String,
       title: map['title'] as String,
       contentType: ContentType.values.firstWhere(
         (e) => e.toString() == 'ContentType.${map['content_type']}',
@@ -39,6 +42,7 @@ class LessonContent {
 
   Map<String, dynamic> toMap() {
     return {
+      'subject_id': subjectId,
       'title': title,
       'content_type': contentType.toString().split('.').last,
       'content': content,
@@ -51,6 +55,7 @@ class LessonContent {
 
   LessonContent copyWith({
     String? id,
+    String? subjectId,
     String? title,
     ContentType? contentType,
     String? content,
@@ -61,6 +66,7 @@ class LessonContent {
   }) {
     return LessonContent(
       id: id ?? this.id,
+      subjectId: subjectId ?? this.subjectId,
       title: title ?? this.title,
       contentType: contentType ?? this.contentType,
       content: content ?? this.content,

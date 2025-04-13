@@ -5,13 +5,21 @@ import 'package:uciberseguridad_app/src/blocs/quiz/quiz_bloc.dart';
 import 'package:uciberseguridad_app/src/routes/app_router.dart';
 import 'package:uciberseguridad_app/src/blocs/blocs.dart';
 import 'package:uciberseguridad_app/theme/app_theme.dart';
+import 'package:uciberseguridad_app/src/services/isar_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Inicializar Supabase (solo para autenticación)
   await Supabase.initialize(
     url: 'https://lcmvtdpmgtjswtlrhkov.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxjbXZ0ZHBtZ3Rqc3d0bHJoa292Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM0NTYyNjcsImV4cCI6MjA1OTAzMjI2N30.jSAczxlZwQE_LViN-yCbyIvDpgaMIAlcbXToSAGGvTE',
+    anonKey:
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxjbXZ0ZHBtZ3Rqc3d0bHJoa292Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM0NTYyNjcsImV4cCI6MjA1OTAzMjI2N30.jSAczxlZwQE_LViN-yCbyIvDpgaMIAlcbXToSAGGvTE',
   );
+
+  // Inicializar Isar
+  await IsarService.instance.isar;
+
   runApp(
     const CyberSecurityApp(),
   );

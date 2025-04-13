@@ -4,6 +4,7 @@ import 'package:uciberseguridad_app/src/widgets/side_menu.dart';
 import 'package:uciberseguridad_app/theme/app_theme.dart';
 import 'package:uciberseguridad_app/src/services/auth_service.dart';
 import 'package:uciberseguridad_app/src/services/lesson_service.dart';
+import 'package:uciberseguridad_app/src/services/sync_service.dart';
 import 'package:uciberseguridad_app/src/models/lesson.dart';
 import 'package:uciberseguridad_app/src/screens/lessons/01-Fundamentos/subject_detail_screen.dart';
 
@@ -16,17 +17,26 @@ class LessonsScreen extends StatefulWidget {
 
 class _LessonsScreenState extends State<LessonsScreen> {
   final AuthService _authService = AuthService();
-  final LessonService _lessonService = LessonService();
+  final LessonService _lessonService = LessonService.instance;
+  late final SyncService _syncService;
   bool _isAdmin = false;
   List<Lesson> _lessons = [];
   bool _isLoading = true;
+  bool _isSyncing = false;
   String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
-    _checkAdminStatus();
-    _loadLessons();
+    _initializeServices();
+  }
+
+  Future<void> _initializeServices() async {
+    await _lessonService.init();
+    _syncService = SyncService(_lessonService);
+    _syncService.startSync();
+    await _checkAdminStatus();
+    await _loadLessons();
   }
 
   Future<void> _checkAdminStatus() async {
@@ -43,6 +53,13 @@ class _LessonsScreenState extends State<LessonsScreen> {
       _lessons = lessons;
       _isLoading = false;
     });
+  }
+
+  Future<void> _refreshLessons() async {
+    setState(() => _isSyncing = true);
+    await _syncService.syncNow();
+    await _loadLessons();
+    setState(() => _isSyncing = false);
   }
 
   void _onSearchChanged(String query) {
@@ -288,12 +305,37 @@ class _LessonsScreenState extends State<LessonsScreen> {
   }
 
   @override
+  void dispose() {
+    _syncService.stopSync();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       drawer: const SideMenu(),
-      appBar: const AppBarScreen(
+      appBar: AppBarScreen(
         title: 'Lecciones',
+        actions: [
+          if (_isSyncing)
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              ),
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: _refreshLessons,
+            ),
+        ],
       ),
       floatingActionButton: _isAdmin
           ? FloatingActionButton(
@@ -304,15 +346,18 @@ class _LessonsScreenState extends State<LessonsScreen> {
           : null,
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SearchBar(onChanged: _onSearchChanged),
-                  const SizedBox(height: 24),
-                  _buildLessonsList(),
-                ],
+          : RefreshIndicator(
+              onRefresh: _refreshLessons,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SearchBar(onChanged: _onSearchChanged),
+                    const SizedBox(height: 24),
+                    _buildLessonsList(),
+                  ],
+                ),
               ),
             ),
     );
@@ -352,7 +397,7 @@ class _LessonsScreenState extends State<LessonsScreen> {
                     color: AppTheme.primaryColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(
+                  child: const Icon(
                     Icons.security,
                     size: 32,
                     color: AppTheme.primaryColor,
@@ -410,8 +455,8 @@ class _LessonsScreenState extends State<LessonsScreen> {
                   child: LinearProgressIndicator(
                     value: progress,
                     backgroundColor: AppTheme.backgroundColor,
-                    valueColor:
-                        AlwaysStoppedAnimation<Color>(AppTheme.accentColor),
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                        AppTheme.accentColor),
                     minHeight: 8,
                   ),
                 ),

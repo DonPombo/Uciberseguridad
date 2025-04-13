@@ -1,22 +1,47 @@
 import 'package:flutter/foundation.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:isar/isar.dart';
 import '../models/lesson.dart';
+import '../models/local_lesson.dart';
+import 'isar_service.dart';
 
 class LessonService {
-  final _supabase = Supabase.instance.client;
+  late final Isar _isar;
+  bool _isInitialized = false;
+  static LessonService? _instance;
+
+  // Constructor privado para singleton
+  LessonService._();
+
+  // Factory constructor para obtener la instancia
+  static LessonService get instance {
+    _instance ??= LessonService._();
+    return _instance!;
+  }
+
+  Future<void> init() async {
+    if (_isInitialized) return;
+
+    try {
+      _isar = await IsarService.instance.isar;
+      _isInitialized = true;
+    } catch (e) {
+      debugPrint('Error inicializando Isar: $e');
+      rethrow;
+    }
+  }
 
   // Obtener todas las lecciones activas
   Future<List<Lesson>> getLessons() async {
     try {
-      final response = await _supabase
-          .from('lessons')
-          .select()
-          .eq('is_active', true)
-          .order('order');
+      if (!_isInitialized) await init();
 
-      return (response as List)
-          .map((lesson) => Lesson.fromMap(lesson))
-          .toList();
+      final localLessons = await _isar.localLessons
+          .where()
+          .isActiveEqualTo(true)
+          .sortByOrder()
+          .findAll();
+
+      return localLessons.map((local) => Lesson.fromLocal(local)).toList();
     } catch (e) {
       debugPrint('Error obteniendo lecciones: $e');
       return [];
@@ -29,23 +54,32 @@ class LessonService {
     required String description,
   }) async {
     try {
+      if (!_isInitialized) await init();
+
       // Obtener el último orden
       final lastOrder = await _getLastOrder();
 
-      final response = await _supabase
-          .from('lessons')
-          .insert({
-            'title': title,
-            'description': description,
-            'content':
-                '', // Valor por defecto para satisfacer la restricción NOT NULL
-            'order': lastOrder + 1,
-            'is_active': true,
-          })
-          .select()
-          .single();
+      final now = DateTime.now();
+      final localId = now.millisecondsSinceEpoch.toString();
 
-      return Lesson.fromMap(response);
+      final localLesson = LocalLesson(
+        remoteId: localId,
+        title: title,
+        description: description,
+        content: '',
+        order: lastOrder + 1,
+        createdAt: now,
+        updatedAt: now,
+        isActive: true,
+        lastSyncedAt: now,
+        isDownloaded: false,
+      );
+
+      await _isar.writeTxn(() async {
+        await _isar.localLessons.put(localLesson);
+      });
+
+      return Lesson.fromLocal(localLesson);
     } catch (e) {
       debugPrint('Error creando lección: $e');
       return null;
@@ -55,7 +89,31 @@ class LessonService {
   // Actualizar una lección existente
   Future<bool> updateLesson(String id, Map<String, dynamic> updates) async {
     try {
-      await _supabase.from('lessons').update(updates).eq('id', id);
+      if (!_isInitialized) await init();
+
+      final localLesson =
+          await _isar.localLessons.where().remoteIdEqualTo(id).findFirst();
+
+      if (localLesson != null) {
+        final isarId = localLesson.id;
+        await _isar.writeTxn(() async {
+          final updatedLesson = LocalLesson(
+            remoteId: localLesson.remoteId,
+            title: updates['title'] ?? localLesson.title,
+            description: updates['description'] ?? localLesson.description,
+            content: localLesson.content,
+            order: localLesson.order,
+            createdAt: localLesson.createdAt,
+            updatedAt: DateTime.now(),
+            isActive: localLesson.isActive,
+            lastSyncedAt: DateTime.now(),
+            isDownloaded: localLesson.isDownloaded,
+          );
+          updatedLesson.id = isarId;
+          await _isar.localLessons.put(updatedLesson);
+        });
+      }
+
       return true;
     } catch (e) {
       debugPrint('Error actualizando lección: $e');
@@ -66,7 +124,31 @@ class LessonService {
   // Eliminar una lección (soft delete)
   Future<bool> deleteLesson(String id) async {
     try {
-      await _supabase.from('lessons').update({'is_active': false}).eq('id', id);
+      if (!_isInitialized) await init();
+
+      final localLesson =
+          await _isar.localLessons.where().remoteIdEqualTo(id).findFirst();
+
+      if (localLesson != null) {
+        final isarId = localLesson.id;
+        await _isar.writeTxn(() async {
+          final updatedLesson = LocalLesson(
+            remoteId: localLesson.remoteId,
+            title: localLesson.title,
+            description: localLesson.description,
+            content: localLesson.content,
+            order: localLesson.order,
+            createdAt: localLesson.createdAt,
+            updatedAt: DateTime.now(),
+            isActive: false,
+            lastSyncedAt: DateTime.now(),
+            isDownloaded: localLesson.isDownloaded,
+          );
+          updatedLesson.id = isarId;
+          await _isar.localLessons.put(updatedLesson);
+        });
+      }
+
       return true;
     } catch (e) {
       debugPrint('Error eliminando lección: $e');
@@ -77,10 +159,16 @@ class LessonService {
   // Obtener una lección específica
   Future<Lesson?> getLesson(String id) async {
     try {
-      final response =
-          await _supabase.from('lessons').select().eq('id', id).single();
+      if (!_isInitialized) await init();
 
-      return Lesson.fromMap(response);
+      final localLesson =
+          await _isar.localLessons.where().remoteIdEqualTo(id).findFirst();
+
+      if (localLesson != null) {
+        return Lesson.fromLocal(localLesson);
+      }
+
+      return null;
     } catch (e) {
       debugPrint('Error obteniendo lección: $e');
       return null;
@@ -90,14 +178,11 @@ class LessonService {
   // Método privado para obtener el último orden
   Future<int> _getLastOrder() async {
     try {
-      final response = await _supabase
-          .from('lessons')
-          .select('order')
-          .order('order', ascending: false)
-          .limit(1)
-          .single();
+      if (!_isInitialized) await init();
 
-      return (response['order'] as int?) ?? 0;
+      final lastLocalLesson =
+          await _isar.localLessons.where().sortByOrderDesc().findFirst();
+      return lastLocalLesson?.order ?? 0;
     } catch (e) {
       return 0;
     }

@@ -1,22 +1,28 @@
 import 'package:flutter/foundation.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/subject.dart';
+import '../models/local_subject.dart';
+import 'local_storage_service.dart';
 
 class SubjectService {
-  final _supabase = Supabase.instance.client;
+  final LocalStorageService _localStorage = LocalStorageService();
 
   // Obtener todos los subtemas de una lección
   Future<List<Subject>> getSubjects(String lessonId) async {
     try {
-      final response = await _supabase
-          .from('subjects')
-          .select()
-          .eq('lesson_id', lessonId)
-          .eq('is_active', true)
-          .order('order_index');
+      final localSubjects = await _localStorage.getSubjects(lessonId);
 
-      return (response as List)
-          .map((subject) => Subject.fromMap(subject))
+      return localSubjects
+          .map((local) => Subject(
+                id: local.remoteId,
+                lessonId: local.lessonId,
+                title: local.title,
+                description: local.description,
+                duration: local.duration,
+                iconName: local.iconName,
+                orderIndex: local.orderIndex,
+                createdAt: local.createdAt,
+                isActive: local.isActive,
+              ))
           .toList();
     } catch (e) {
       debugPrint('Error obteniendo subtemas: $e');
@@ -35,22 +41,41 @@ class SubjectService {
     try {
       // Obtener el último orden
       final lastOrder = await _getLastOrder(lessonId);
+      final now = DateTime.now();
 
-      final response = await _supabase
-          .from('subjects')
-          .insert({
-            'lesson_id': lessonId,
-            'title': title,
-            'description': description,
-            'duration': duration,
-            'icon_name': iconName,
-            'order_index': lastOrder + 1,
-            'is_active': true,
-          })
-          .select()
-          .single();
+      // Crear ID único para el tema local
+      final localId = DateTime.now().millisecondsSinceEpoch.toString();
 
-      return Subject.fromMap(response);
+      // Crear tema local
+      final localSubject = LocalSubject(
+        remoteId: localId,
+        lessonId: lessonId,
+        title: title,
+        description: description,
+        duration: duration,
+        iconName: iconName,
+        orderIndex: lastOrder + 1,
+        createdAt: now,
+        updatedAt: now,
+        isActive: true,
+        lastSyncedAt: now,
+      );
+
+      // Guardar en Isar
+      await _localStorage.saveSubject(localSubject);
+
+      // Convertir a Subject para la UI
+      return Subject(
+        id: localSubject.remoteId,
+        lessonId: localSubject.lessonId,
+        title: localSubject.title,
+        description: localSubject.description,
+        duration: localSubject.duration,
+        iconName: localSubject.iconName,
+        orderIndex: localSubject.orderIndex,
+        createdAt: localSubject.createdAt,
+        isActive: localSubject.isActive,
+      );
     } catch (e) {
       debugPrint('Error creando subtema: $e');
       return null;
@@ -60,7 +85,24 @@ class SubjectService {
   // Actualizar un subtema existente
   Future<bool> updateSubject(String id, Map<String, dynamic> updates) async {
     try {
-      await _supabase.from('subjects').update(updates).eq('id', id);
+      final existingSubject = await _localStorage.getSubject(id);
+      if (existingSubject == null) return false;
+
+      final updatedSubject = LocalSubject(
+        remoteId: existingSubject.remoteId,
+        lessonId: existingSubject.lessonId,
+        title: updates['title'] ?? existingSubject.title,
+        description: updates['description'] ?? existingSubject.description,
+        duration: updates['duration'] ?? existingSubject.duration,
+        iconName: updates['icon_name'] ?? existingSubject.iconName,
+        orderIndex: existingSubject.orderIndex,
+        createdAt: existingSubject.createdAt,
+        updatedAt: DateTime.now(),
+        isActive: existingSubject.isActive,
+        lastSyncedAt: existingSubject.lastSyncedAt,
+      );
+
+      await _localStorage.saveSubject(updatedSubject);
       return true;
     } catch (e) {
       debugPrint('Error actualizando subtema: $e');
@@ -68,12 +110,10 @@ class SubjectService {
     }
   }
 
-  // Eliminar un subtema (soft delete)
+  // Eliminar un subtema
   Future<bool> deleteSubject(String id) async {
     try {
-      await _supabase
-          .from('subjects')
-          .update({'is_active': false}).eq('id', id);
+      await _localStorage.deleteSubject(id);
       return true;
     } catch (e) {
       debugPrint('Error eliminando subtema: $e');
@@ -84,10 +124,20 @@ class SubjectService {
   // Obtener un subtema específico
   Future<Subject?> getSubject(String id) async {
     try {
-      final response =
-          await _supabase.from('subjects').select().eq('id', id).single();
+      final localSubject = await _localStorage.getSubject(id);
+      if (localSubject == null) return null;
 
-      return Subject.fromMap(response);
+      return Subject(
+        id: localSubject.remoteId,
+        lessonId: localSubject.lessonId,
+        title: localSubject.title,
+        description: localSubject.description,
+        duration: localSubject.duration,
+        iconName: localSubject.iconName,
+        orderIndex: localSubject.orderIndex,
+        createdAt: localSubject.createdAt,
+        isActive: localSubject.isActive,
+      );
     } catch (e) {
       debugPrint('Error obteniendo subtema: $e');
       return null;
@@ -97,15 +147,11 @@ class SubjectService {
   // Método privado para obtener el último orden
   Future<int> _getLastOrder(String lessonId) async {
     try {
-      final response = await _supabase
-          .from('subjects')
-          .select('order_index')
-          .eq('lesson_id', lessonId)
-          .order('order_index', ascending: false)
-          .limit(1)
-          .single();
+      final subjects = await _localStorage.getSubjects(lessonId);
+      if (subjects.isEmpty) return 0;
 
-      return (response['order_index'] as int?) ?? 0;
+      subjects.sort((a, b) => b.orderIndex.compareTo(a.orderIndex));
+      return subjects.first.orderIndex;
     } catch (e) {
       return 0;
     }

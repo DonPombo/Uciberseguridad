@@ -1,0 +1,71 @@
+import 'package:flutter/material.dart';
+import 'package:uciberseguridad_app/src/models/lesson_content.dart';
+import 'package:uciberseguridad_app/theme/app_theme.dart';
+import 'video_content_view.dart';
+
+class ContentItem extends StatelessWidget {
+  final LessonContent content;
+  final bool isAdmin;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const ContentItem({
+    Key? key,
+    required this.content,
+    required this.isAdmin,
+    required this.onEdit,
+    required this.onDelete,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    content.title,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                if (isAdmin) ...[
+                  IconButton(
+                    onPressed: onEdit,
+                    icon: const Icon(Icons.edit),
+                    color: AppTheme.accentColor,
+                  ),
+                  IconButton(
+                    onPressed: onDelete,
+                    icon: const Icon(Icons.delete),
+                    color: Colors.red,
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (content.contentType == ContentType.text)
+              Text(
+                content.content,
+                style: const TextStyle(fontSize: 16),
+              )
+            else if (content.contentType == ContentType.video &&
+                content.videoUrl != null)
+              VideoContentView(
+                videoUrl: content.videoUrl!,
+                title: content.title,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
