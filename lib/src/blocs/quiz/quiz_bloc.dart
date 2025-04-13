@@ -1,8 +1,11 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:uciberseguridad_app/src/models/quiz_model.dart';
+import 'package:uciberseguridad_app/src/models/local_quiz.dart';
+import 'package:uciberseguridad_app/src/services/quiz_service.dart';
 import 'package:uciberseguridad_app/src/screens/quiz/quiz_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
 // Events
 abstract class QuizEvent extends Equatable {
@@ -92,6 +95,8 @@ class QuizError extends QuizState {
 
 // BLoC
 class QuizBloc extends Bloc<QuizEvent, QuizState> {
+  final QuizService _quizService = QuizService();
+
   QuizBloc() : super(QuizInitial()) {
     on<LoadQuiz>(_onLoadQuiz);
     on<AnswerQuestion>(_onAnswerQuestion);
@@ -103,25 +108,71 @@ class QuizBloc extends Bloc<QuizEvent, QuizState> {
   void _onLoadQuiz(LoadQuiz event, Emitter<QuizState> emit) async {
     emit(QuizLoading());
     try {
-      // Aquí cargaríamos el cuestionario desde una fuente de datos
-      // Por ahora, usaremos datos de ejemplo
-      final quiz = _getQuizForLesson(event.lessonId);
+      debugPrint(
+          '🔍 Buscando cuestionarios para el contenido ID: ${event.lessonId}');
+      final quizzes = await _quizService.getQuizzesByContentId(event.lessonId);
+      debugPrint('📊 Cuestionarios encontrados: ${quizzes.length}');
+
+      if (quizzes.isEmpty) {
+        debugPrint('❌ No se encontraron cuestionarios');
+        emit(const QuizError(
+            'No hay cuestionario disponible para este contenido'));
+        return;
+      }
+
+      debugPrint('✅ Cuestionario encontrado:');
+      debugPrint('   - ID: ${quizzes.first.id}');
+      debugPrint('   - Título: ${quizzes.first.title}');
+      debugPrint('   - Contenido ID: ${quizzes.first.contentId}');
+      debugPrint('   - Número de preguntas: ${quizzes.first.questions.length}');
+
+      final quiz = _convertLocalQuizToQuiz(quizzes.first);
       emit(QuizLoaded(
         quiz: quiz,
         userAnswers: List.filled(quiz.questions.length, null),
       ));
     } catch (e) {
-      emit(const QuizError('Error al cargar el cuestionario'));
+      debugPrint('❌ Error cargando cuestionario: $e');
+      emit(QuizError('Error al cargar el cuestionario: $e'));
     }
+  }
+
+  Quiz _convertLocalQuizToQuiz(LocalQuiz localQuiz) {
+    debugPrint('🔄 Convirtiendo LocalQuiz a Quiz:');
+    debugPrint('   - ID Original: ${localQuiz.id}');
+    debugPrint('   - ID Convertido: ${localQuiz.id.toString()}');
+    debugPrint('   - Contenido ID: ${localQuiz.contentId}');
+
+    final quiz = Quiz(
+      id: localQuiz.id.toString(),
+      lessonId: localQuiz.contentId,
+      title: localQuiz.title,
+      questions: localQuiz.questions
+          .map((q) => QuizQuestion(
+                question: q.text,
+                options: q.options,
+                correctAnswer: q.correctOptionIndex,
+                explanation: q.explanation,
+              ))
+          .toList(),
+    );
+
+    debugPrint('✅ Conversión completada');
+    return quiz;
   }
 
   void _onAnswerQuestion(AnswerQuestion event, Emitter<QuizState> emit) {
     if (state is QuizLoaded) {
+      debugPrint('📝 Respondiendo pregunta:');
+      debugPrint('   - Índice de pregunta: ${event.questionIndex}');
+      debugPrint('   - Respuesta seleccionada: ${event.selectedAnswer}');
+
       final currentState = state as QuizLoaded;
       final newAnswers = List<int?>.from(currentState.userAnswers);
       newAnswers[event.questionIndex] = event.selectedAnswer;
 
       final isCompleted = !newAnswers.contains(null);
+      debugPrint('   - Cuestionario completado: $isCompleted');
 
       emit(currentState.copyWith(
         userAnswers: newAnswers,
@@ -156,33 +207,10 @@ class QuizBloc extends Bloc<QuizEvent, QuizState> {
   void _onFinishQuiz(FinishQuiz event, Emitter<QuizState> emit) {
     if (state is QuizLoaded) {
       final currentState = state as QuizLoaded;
-      // Aquí podrías agregar lógica para guardar los resultados
+      debugPrint('🏁 Finalizando cuestionario');
+      debugPrint('   - Respuestas del usuario: ${currentState.userAnswers}');
       emit(currentState.copyWith(isCompleted: true));
     }
-  }
-
-  Quiz _getQuizForLesson(String lessonId) {
-    // Aquí irían los datos de ejemplo del cuestionario
-    return Quiz(
-      id: 'quiz_1',
-      lessonId: lessonId,
-      title: 'Fundamentos de Ciberseguridad',
-      questions: [
-        QuizQuestion(
-          question: '¿Qué es la ciberseguridad?',
-          options: [
-            'Protección de sistemas informáticos',
-            'Un tipo de virus',
-            'Una red social',
-            'Un programa de computadora'
-          ],
-          correctAnswer: 0,
-          explanation:
-              'La ciberseguridad se refiere a la práctica de proteger sistemas, redes y programas de ataques digitales.',
-        ),
-        // Más preguntas aquí...
-      ],
-    );
   }
 
   void navigateToQuiz(

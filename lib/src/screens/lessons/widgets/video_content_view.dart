@@ -140,6 +140,7 @@ class _VideoContentViewState extends State<VideoContentView> {
 
   Future<void> _downloadVideo() async {
     if (!_isValidVideo) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('URL de video no válida')),
       );
@@ -155,13 +156,18 @@ class _VideoContentViewState extends State<VideoContentView> {
 
       // Obtener información del video
       final video = await _yt.videos.get(widget.videoUrl);
+      if (!mounted) return;
 
       // Obtener la mejor calidad de video disponible
       final manifest = await _yt.videos.streamsClient.getManifest(video.id);
+      if (!mounted) return;
+
       final streamInfo = manifest.muxed.withHighestBitrate();
 
       // Obtener el directorio de documentos de la aplicación
       final directory = await getApplicationDocumentsDirectory();
+      if (!mounted) return;
+
       final filePath = '${directory.path}/${video.title}.mp4';
 
       // Descargar el video
@@ -187,17 +193,15 @@ class _VideoContentViewState extends State<VideoContentView> {
       await fileStream.flush();
       await fileStream.close();
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Video descargado en: $filePath')),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Video descargado en: $filePath')),
+      );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al descargar el video: $e')),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al descargar el video: $e')),
+      );
     } finally {
       if (mounted) {
         setState(() {

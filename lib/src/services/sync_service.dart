@@ -1,17 +1,16 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'lesson_service.dart';
 import 'lesson_content_service.dart';
 import 'local_storage_service.dart';
 
 class SyncService {
-  final LessonService _lessonService;
-  final LessonContentService _contentService = LessonContentService();
-  final LocalStorageService _localStorage = LocalStorageService();
+  final LessonService lessonService;
+  final LessonContentService contentService = LessonContentService();
+  final LocalStorageService localStorage = LocalStorageService();
   Timer? _syncTimer;
-  bool _isSyncing = false;
+  bool isSyncing = false;
 
-  SyncService(this._lessonService);
+  SyncService(this.lessonService);
 
   void startSync() {
     // Ya no necesitamos sincronización periódica
