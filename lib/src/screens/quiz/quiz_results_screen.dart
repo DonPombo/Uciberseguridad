@@ -260,10 +260,13 @@ class QuizResultsScreen extends StatelessWidget {
   Widget _buildBackButton(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      child: OutlinedButton.icon(
-        onPressed: () => context.go('/lessons'),
+      child: ElevatedButton.icon(
+        onPressed: () {
+          debugPrint('🔙 Volviendo a la pantalla anterior');
+          context.pop();
+        },
         icon: const Icon(Icons.arrow_back),
-        label: const Text('Volver a la lección'),
+        label: const Text('Volver'),
         style: OutlinedButton.styleFrom(
           backgroundColor: AppTheme.surfaceColor,
           foregroundColor: AppTheme.textColor,

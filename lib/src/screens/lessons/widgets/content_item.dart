@@ -8,14 +8,16 @@ class ContentItem extends StatelessWidget {
   final bool isAdmin;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback? onDownload;
 
   const ContentItem({
-    Key? key,
+    super.key,
     required this.content,
     required this.isAdmin,
     required this.onEdit,
     required this.onDelete,
-  }) : super(key: key);
+    this.onDownload,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -62,6 +64,13 @@ class ContentItem extends StatelessWidget {
               VideoContentView(
                 videoUrl: content.videoUrl!,
                 title: content.title,
+              ),
+            if (onDownload != null)
+              IconButton(
+                onPressed: onDownload!,
+                icon: const Icon(Icons.download),
+                color: AppTheme.accentColor,
+                tooltip: 'Descargar',
               ),
           ],
         ),

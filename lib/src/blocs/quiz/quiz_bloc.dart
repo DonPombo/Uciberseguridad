@@ -171,12 +171,12 @@ class QuizBloc extends Bloc<QuizEvent, QuizState> {
       final newAnswers = List<int?>.from(currentState.userAnswers);
       newAnswers[event.questionIndex] = event.selectedAnswer;
 
-      final isCompleted = !newAnswers.contains(null);
-      debugPrint('   - Cuestionario completado: $isCompleted');
+      debugPrint(
+          '   - Respuesta guardada, esperando que el usuario finalice el cuestionario');
 
       emit(currentState.copyWith(
         userAnswers: newAnswers,
-        isCompleted: isCompleted,
+        isCompleted: currentState.isCompleted,
       ));
     }
   }

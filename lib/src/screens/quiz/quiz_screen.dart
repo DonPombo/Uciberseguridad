@@ -184,6 +184,14 @@ class _QuizContent extends StatelessWidget {
 
   Widget _buildNavigationButtons(
       BuildContext context, bool hasAnsweredCurrent) {
+    final allQuestionsAnswered = _allQuestionsAnswered();
+
+    debugPrint('🔘 Construyendo botones de navegación:');
+    debugPrint(
+        '   - Es última pregunta: ${state.currentQuestionIndex == state.quiz.questions.length - 1}');
+    debugPrint('   - Pregunta actual respondida: $hasAnsweredCurrent');
+    debugPrint('   - Todas las preguntas respondidas: $allQuestionsAnswered');
+
     return Container(
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
@@ -229,16 +237,18 @@ class _QuizContent extends StatelessWidget {
             )
           else
             ElevatedButton.icon(
-              onPressed: _allQuestionsAnswered()
+              onPressed: allQuestionsAnswered
                   ? () {
+                      debugPrint(
+                          '🏁 Usuario finalizando cuestionario manualmente');
                       context.read<QuizBloc>().add(FinishQuiz());
                     }
                   : null,
               icon: const Icon(Icons.check_circle),
               label: const Text('Finalizar'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                disabledBackgroundColor: Colors.green.withOpacity(0.3),
+                backgroundColor: AppTheme.accentColor,
+                disabledBackgroundColor: AppTheme.accentColor.withOpacity(0.3),
               ),
             ),
         ],
@@ -256,21 +266,18 @@ class _QuizContent extends StatelessWidget {
     int index,
   ) {
     final isSelected = state.userAnswers[state.currentQuestionIndex] == index;
-    final hasAnswered = state.userAnswers[state.currentQuestionIndex] != null;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: ElevatedButton(
-        onPressed: hasAnswered
-            ? null
-            : () {
-                context.read<QuizBloc>().add(
-                      AnswerQuestion(state.currentQuestionIndex, index),
-                    );
-              },
+        onPressed: () {
+          context.read<QuizBloc>().add(
+                AnswerQuestion(state.currentQuestionIndex, index),
+              );
+        },
         style: ElevatedButton.styleFrom(
           backgroundColor:
-              isSelected ? AppTheme.accentColor : AppTheme.surfaceColor,
+              isSelected ? AppTheme.secondaryColor : AppTheme.surfaceColor,
           padding: const EdgeInsets.symmetric(
             horizontal: 20,
             vertical: 16,
@@ -279,12 +286,12 @@ class _QuizContent extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             side: BorderSide(
               color: isSelected
-                  ? AppTheme.accentColor
+                  ? AppTheme.secondaryColor
                   : AppTheme.textColor.withOpacity(0.2),
             ),
           ),
           disabledBackgroundColor: isSelected
-              ? AppTheme.accentColor
+              ? AppTheme.secondaryColor
               : AppTheme.surfaceColor.withOpacity(0.7),
         ),
         child: Row(
@@ -295,11 +302,11 @@ class _QuizContent extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: isSelected
-                    ? Colors.white
+                    ? Colors.white.withOpacity(0.7)
                     : AppTheme.accentColor.withOpacity(0.1),
                 border: Border.all(
                   color: isSelected
-                      ? AppTheme.accentColor
+                      ? Colors.green
                       : AppTheme.accentColor.withOpacity(0.5),
                 ),
               ),
@@ -307,8 +314,9 @@ class _QuizContent extends StatelessWidget {
                 child: Text(
                   String.fromCharCode(65 + index),
                   style: TextStyle(
-                    color:
-                        isSelected ? AppTheme.accentColor : AppTheme.textColor,
+                    color: isSelected
+                        ? Colors.black.withOpacity(0.8)
+                        : AppTheme.textColor,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -319,8 +327,11 @@ class _QuizContent extends StatelessWidget {
               child: Text(
                 option,
                 style: TextStyle(
-                  color: isSelected ? Colors.white : AppTheme.textColor,
+                  color: isSelected
+                      ? Colors.black.withOpacity(0.8)
+                      : AppTheme.textColor,
                   fontSize: 16,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 ),
               ),
             ),

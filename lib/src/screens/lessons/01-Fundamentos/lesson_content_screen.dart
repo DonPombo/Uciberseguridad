@@ -9,6 +9,9 @@ import 'package:uciberseguridad_app/src/screens/lessons/widgets/content_form.dar
 import 'package:uciberseguridad_app/src/screens/lessons/widgets/content_item.dart';
 import 'package:uciberseguridad_app/src/screens/admin/quiz_editor_screen.dart';
 import 'package:uciberseguridad_app/src/screens/quiz/quiz_screen.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class LessonContentScreen extends StatefulWidget {
   final String lessonTitle;
@@ -32,15 +35,52 @@ class _LessonContentScreenState extends State<LessonContentScreen> {
   List<LessonContent> _contents = [];
   bool _isLoading = true;
   Map<String, LocalQuiz?> _contentQuizzes = {};
+  final FlutterLocalNotificationsPlugin _notifications =
+      FlutterLocalNotificationsPlugin();
 
   @override
   void initState() {
     super.initState();
+    _initializeNotifications();
     debugPrint('🚀 Inicializando LessonContentScreen');
     debugPrint('   - Subject ID: ${widget.subjectId}');
     debugPrint('   - Lesson Title: ${widget.lessonTitle}');
     _checkAdminStatus();
     _loadContents();
+  }
+
+  Future<void> _initializeNotifications() async {
+    const androidSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+    const initializationSettings =
+        InitializationSettings(android: androidSettings);
+    await _notifications.initialize(
+      initializationSettings,
+      onDidReceiveNotificationResponse: (NotificationResponse details) {
+        if (details.payload != null) {
+          _openFile(details.payload!);
+        }
+      },
+    );
+  }
+
+  Future<void> _showNotification(String filePath) async {
+    const androidDetails = AndroidNotificationDetails(
+      'downloads_channel',
+      'Descargas',
+      channelDescription: 'Notificaciones de descargas de contenido',
+      importance: Importance.high,
+      priority: Priority.high,
+      enableVibration: true,
+    );
+
+    await _notifications.show(
+      DateTime.now().millisecond,
+      'Descarga completada',
+      'Toca para abrir el contenido',
+      const NotificationDetails(android: androidDetails),
+      payload: filePath,
+    );
   }
 
   Future<void> _checkAdminStatus() async {
@@ -137,7 +177,8 @@ class _LessonContentScreenState extends State<LessonContentScreen> {
                     if (!mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                          content: Text('Contenido creado correctamente')),
+                        content: Text('Contenido creado correctamente'),
+                      ),
                     );
                     _loadContents();
                   }
@@ -296,6 +337,66 @@ class _LessonContentScreenState extends State<LessonContentScreen> {
     );
   }
 
+  Future<void> _downloadContent(LessonContent content) async {
+    try {
+      debugPrint('\n📥 INICIO DE DESCARGA DE CONTENIDO');
+      debugPrint('================================');
+      debugPrint('   - Título: ${content.title}');
+      debugPrint('   - ID: ${content.id}');
+
+      final directory = await getApplicationDocumentsDirectory();
+      final folderPath = '${directory.path}/offline_content';
+      debugPrint('   - Ruta de descarga: $folderPath');
+
+      final dir = Directory(folderPath);
+      if (!await dir.exists()) {
+        debugPrint('   - Creando directorio...');
+        await dir.create(recursive: true);
+      }
+
+      final file = File('$folderPath/${content.id}.txt');
+      debugPrint('   - Archivo destino: ${file.path}');
+
+      final contentToSave = '''
+Título: ${content.title}
+Fecha de descarga: ${DateTime.now().toString()}
+
+${content.content}
+''';
+
+      await file.writeAsString(contentToSave);
+      debugPrint('   - Archivo guardado correctamente');
+
+      if (!mounted) return;
+
+      await _showNotification(file.path);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Contenido descargado correctamente'),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 5),
+          action: SnackBarAction(
+            label: 'Abrir',
+            textColor: Colors.white,
+            onPressed: () => _openFile(file.path),
+          ),
+        ),
+      );
+    } catch (e) {
+      debugPrint('❌ Error al descargar: $e');
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al descargar: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     debugPrint('\n🏗️ CONSTRUYENDO INTERFAZ');
@@ -423,19 +524,10 @@ class _LessonContentScreenState extends State<LessonContentScreen> {
               isAdmin: _isAdmin,
               onEdit: () => _showEditContentDialog(content),
               onDelete: () => _deleteContent(content),
+              onDownload: content.contentType == ContentType.text
+                  ? () => _downloadContent(content)
+                  : null,
             ),
-            if (!_isAdmin && hasQuiz)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: ElevatedButton.icon(
-                  onPressed: () => _startQuiz(content),
-                  icon: const Icon(Icons.quiz),
-                  label: const Text('Iniciar Cuestionario'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.accentColor,
-                  ),
-                ),
-              ),
             const SizedBox(height: 16),
           ],
         );
@@ -579,6 +671,52 @@ class _LessonContentScreenState extends State<LessonContentScreen> {
         );
         _loadContents();
       }
+    }
+  }
+
+  Future<void> _openFile(String filePath) async {
+    try {
+      final file = File(filePath);
+      if (await file.exists()) {
+        // Leer el contenido del archivo
+        final content = await file.readAsString();
+
+        // Mostrar el contenido en un diálogo
+        if (!mounted) return;
+
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Contenido descargado'),
+            content: SingleChildScrollView(
+              child: Text(content),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cerrar'),
+              ),
+            ],
+          ),
+        );
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('El archivo no existe'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error al abrir el archivo: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error al abrir el archivo'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 }
