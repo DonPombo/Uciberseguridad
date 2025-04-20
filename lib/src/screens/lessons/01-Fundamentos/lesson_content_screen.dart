@@ -12,6 +12,9 @@ import 'package:uciberseguridad_app/src/screens/quiz/quiz_screen.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:permission_handler/permission_handler.dart';
 
 class LessonContentScreen extends StatefulWidget {
   final String lessonTitle;
@@ -337,24 +340,48 @@ class _LessonContentScreenState extends State<LessonContentScreen> {
     );
   }
 
+  Future<bool> _requestStoragePermission() async {
+    if (await Permission.storage.isGranted) {
+      return true;
+    }
+
+    final status = await Permission.storage.request();
+    return status.isGranted;
+  }
+
   Future<void> _downloadContent(LessonContent content) async {
     try {
       debugPrint('\n📥 INICIO DE DESCARGA DE CONTENIDO');
       debugPrint('================================');
       debugPrint('   - Título: ${content.title}');
       debugPrint('   - ID: ${content.id}');
+      debugPrint('   - Tipo de contenido: ${content.contentType}');
 
-      final directory = await getApplicationDocumentsDirectory();
-      final folderPath = '${directory.path}/offline_content';
+      // Solicitar permisos de almacenamiento
+      final hasPermission = await _requestStoragePermission();
+      if (!hasPermission) {
+        throw Exception(
+            'Se requieren permisos de almacenamiento para descargar el contenido');
+      }
+
+      // Obtener el directorio de descargas
+      final directory = await getExternalStorageDirectory();
+      if (directory == null) {
+        throw Exception('No se pudo acceder al almacenamiento externo');
+      }
+
+      final folderPath = '${directory.path}/UCiberseguridad';
       debugPrint('   - Ruta de descarga: $folderPath');
 
       final dir = Directory(folderPath);
       if (!await dir.exists()) {
         debugPrint('   - Creando directorio...');
         await dir.create(recursive: true);
+        debugPrint('   - Directorio creado exitosamente');
       }
 
-      final file = File('$folderPath/${content.id}.txt');
+      final file = File(
+          '$folderPath/${content.title.replaceAll(RegExp(r'[^\w\s-]'), '_')}.txt');
       debugPrint('   - Archivo destino: ${file.path}');
 
       final contentToSave = '''
@@ -364,12 +391,15 @@ Fecha de descarga: ${DateTime.now().toString()}
 ${content.content}
 ''';
 
+      debugPrint('   - Guardando contenido en archivo...');
       await file.writeAsString(contentToSave);
       debugPrint('   - Archivo guardado correctamente');
+      debugPrint('   - Tamaño del archivo: ${await file.length()} bytes');
 
       if (!mounted) return;
 
       await _showNotification(file.path);
+      debugPrint('   - Notificación mostrada');
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -383,8 +413,11 @@ ${content.content}
           ),
         ),
       );
-    } catch (e) {
-      debugPrint('❌ Error al descargar: $e');
+      debugPrint('✅ DESCARGA COMPLETADA EXITOSAMENTE\n');
+    } catch (e, stackTrace) {
+      debugPrint('❌ ERROR EN LA DESCARGA');
+      debugPrint('   - Error: $e');
+      debugPrint('   - Stack trace: $stackTrace');
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -676,30 +709,13 @@ ${content.content}
 
   Future<void> _openFile(String filePath) async {
     try {
+      debugPrint('\n📂 INICIO DE APERTURA DE ARCHIVO');
+      debugPrint('===============================');
+      debugPrint('   - Ruta del archivo: $filePath');
+
       final file = File(filePath);
-      if (await file.exists()) {
-        // Leer el contenido del archivo
-        final content = await file.readAsString();
-
-        // Mostrar el contenido en un diálogo
-        if (!mounted) return;
-
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Contenido descargado'),
-            content: SingleChildScrollView(
-              child: Text(content),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cerrar'),
-              ),
-            ],
-          ),
-        );
-      } else {
+      if (!await file.exists()) {
+        debugPrint('❌ El archivo no existe');
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -707,9 +723,133 @@ ${content.content}
             backgroundColor: Colors.red,
           ),
         );
+        return;
       }
-    } catch (e) {
-      debugPrint('Error al abrir el archivo: $e');
+
+      debugPrint('   - Archivo encontrado');
+      debugPrint('   - Tamaño del archivo: ${await file.length()} bytes');
+
+      if (!mounted) return;
+      final navigator = Navigator.of(context);
+      ScaffoldMessenger.of(context);
+
+      debugPrint('   - Mostrando diálogo de opciones...');
+      await showDialog(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('¿Cómo deseas abrir el archivo?'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.visibility),
+                title: const Text('Ver en la app'),
+                onTap: () async {
+                  debugPrint('   - Opción seleccionada: Ver en la app');
+                  navigator.pop();
+                  final content = await file.readAsString();
+                  debugPrint(
+                      '   - Contenido leído: ${content.length} caracteres');
+                  if (!mounted) return;
+                  await showDialog(
+                    context: context,
+                    builder: (contentContext) => AlertDialog(
+                      title: const Text('Contenido descargado'),
+                      content: SingleChildScrollView(
+                        child: Text(content),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => navigator.pop(),
+                          child: const Text('Cerrar'),
+                        ),
+                      ],
+                    ),
+                  );
+                  debugPrint('   - Diálogo de contenido cerrado');
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.picture_as_pdf),
+                title: const Text('Abrir como PDF'),
+                onTap: () async {
+                  debugPrint('   - Opción seleccionada: Abrir como PDF');
+                  navigator.pop();
+                  try {
+                    debugPrint('   - Generando PDF...');
+                    final content = await file.readAsString();
+
+                    final pdf = pw.Document();
+                    pdf.addPage(
+                      pw.Page(
+                        build: (pw.Context context) => pw.Center(
+                          child: pw.Text(content),
+                        ),
+                      ),
+                    );
+
+                    final directory = await getApplicationDocumentsDirectory();
+                    final pdfPath =
+                        '${directory.path}/temp_${DateTime.now().millisecondsSinceEpoch}.pdf';
+                    final pdfFile = File(pdfPath);
+                    await pdfFile.writeAsBytes(await pdf.save());
+                    debugPrint('   - PDF generado en: $pdfPath');
+
+                    final uri = Uri.file(pdfPath);
+                    debugPrint('   - URI generada: $uri');
+
+                    if (await canLaunchUrl(uri)) {
+                      debugPrint('   - URI puede ser lanzada');
+                      final result = await launchUrl(
+                        uri,
+                        mode: LaunchMode.externalApplication,
+                      );
+                      debugPrint('   - Resultado del lanzamiento: $result');
+                    } else {
+                      throw Exception(
+                          'No se encontró una aplicación para abrir PDF');
+                    }
+                  } catch (e, stackTrace) {
+                    debugPrint('❌ Error al generar/abrir PDF');
+                    debugPrint('   - Error: $e');
+                    debugPrint('   - Stack trace: $stackTrace');
+                    if (!mounted) return;
+
+                    showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('No se pudo abrir el PDF'),
+                        content: const Text(
+                            'Parece que no hay una aplicación instalada que pueda abrir archivos PDF. Por favor, instala un lector de PDF o usa la opción "Ver en la app".'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('Entendido'),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                debugPrint('   - Operación cancelada por el usuario');
+                navigator.pop();
+              },
+              child: const Text('Cancelar'),
+            ),
+          ],
+        ),
+      );
+      debugPrint('✅ PROCESO DE APERTURA COMPLETADO\n');
+    } catch (e, stackTrace) {
+      debugPrint('❌ ERROR EN LA APERTURA DEL ARCHIVO');
+      debugPrint('   - Error: $e');
+      debugPrint('   - Stack trace: $stackTrace');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
