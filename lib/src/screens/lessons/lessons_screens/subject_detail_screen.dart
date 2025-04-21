@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uciberseguridad_app/src/blocs/blocs.dart';
-import 'package:uciberseguridad_app/src/screens/lessons/01-Fundamentos/lesson_content_screen.dart';
+import 'package:uciberseguridad_app/src/screens/lessons/lessons_screens/lesson_content_screen.dart';
 import 'package:uciberseguridad_app/theme/app_theme.dart';
 import 'package:uciberseguridad_app/src/services/auth_service.dart';
 import 'package:uciberseguridad_app/src/services/subject_service.dart';

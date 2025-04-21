@@ -1,6 +1,6 @@
 import 'package:go_router/go_router.dart';
-import 'package:uciberseguridad_app/src/screens/lessons/01-Fundamentos/lesson_content_screen.dart';
-import 'package:uciberseguridad_app/src/screens/lessons/01-Fundamentos/subject_detail_screen.dart';
+import 'package:uciberseguridad_app/src/screens/lessons/lessons_screens/lesson_content_screen.dart';
+import 'package:uciberseguridad_app/src/screens/lessons/lessons_screens/subject_detail_screen.dart';
 import '../screens/screens.dart';
 
 class AppRouter {

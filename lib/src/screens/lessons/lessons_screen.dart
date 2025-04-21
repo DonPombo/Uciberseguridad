@@ -6,7 +6,7 @@ import 'package:uciberseguridad_app/src/services/auth_service.dart';
 import 'package:uciberseguridad_app/src/services/lesson_service.dart';
 import 'package:uciberseguridad_app/src/services/sync_service.dart';
 import 'package:uciberseguridad_app/src/models/lesson.dart';
-import 'package:uciberseguridad_app/src/screens/lessons/01-Fundamentos/subject_detail_screen.dart';
+import 'package:uciberseguridad_app/src/screens/lessons/lessons_screens/subject_detail_screen.dart';
 
 class LessonsScreen extends StatefulWidget {
   const LessonsScreen({super.key});
@@ -497,7 +497,7 @@ class _LessonsScreenState extends State<LessonsScreen> {
                   ),
                   child: Text(
                     isCompleted ? 'Completado' : 'Empezar',
-                    style: const TextStyle(color: Colors.white),
+                    style: const TextStyle(color: Colors.black),
                   ),
                 ),
               ],

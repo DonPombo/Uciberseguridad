@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:uciberseguridad_app/src/screens/lessons/01-Fundamentos/subject_detail_screen.dart';
+import 'package:uciberseguridad_app/src/screens/lessons/lessons_screens/subject_detail_screen.dart';
 import 'package:uciberseguridad_app/theme/app_theme.dart';
 
 Widget buildActionSection(
@@ -45,9 +45,9 @@ Widget buildActionSection(
                 child: Text(
                   buttonText,
                   style: const TextStyle(
-                    color: AppTheme.accentColor,
-                    fontWeight: FontWeight.bold,
-                  ),
+                      color: AppTheme.accentColor,
+                      fontWeight: FontWeight.bold,
+                  )
                 ),
               ),
           ],
