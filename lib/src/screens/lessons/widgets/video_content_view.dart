@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
-import 'package:path_provider/path_provider.dart';
-import 'dart:io';
 
 class VideoContentView extends StatefulWidget {
   final String videoUrl;
@@ -21,12 +19,9 @@ class VideoContentView extends StatefulWidget {
 class _VideoContentViewState extends State<VideoContentView> {
   late YoutubePlayerController _controller;
   final _yt = YoutubeExplode();
-  bool _isDownloading = false;
-  double _downloadProgress = 0.0;
   bool _isValidVideo = true;
   bool _hasError = false;
   String _errorMessage = '';
-  bool _isPlayerReady = false;
   bool _isInitialized = false;
   bool _isLoading = true;
   bool _shouldPlay = false;
@@ -80,6 +75,7 @@ class _VideoContentViewState extends State<VideoContentView> {
         _videoTitle = video.title;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _isValidVideo = false;
         _errorMessage =
@@ -110,7 +106,7 @@ class _VideoContentViewState extends State<VideoContentView> {
         setState(() {
           _hasError = true;
           _errorMessage =
-              'Error al cargar el video. Por favor, verifica tu conexión a internet.';
+              'Error al cargar el video. Por favor, verifica tu conexión a internet o que el video exista y sea público.';
           _isLoading = false;
         });
       }
@@ -138,79 +134,6 @@ class _VideoContentViewState extends State<VideoContentView> {
     super.dispose();
   }
 
-  Future<void> _downloadVideo() async {
-    if (!_isValidVideo) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('URL de video no válida')),
-      );
-      return;
-    }
-
-    try {
-      if (!mounted) return;
-      setState(() {
-        _isDownloading = true;
-        _downloadProgress = 0.0;
-      });
-
-      // Obtener información del video
-      final video = await _yt.videos.get(widget.videoUrl);
-      if (!mounted) return;
-
-      // Obtener la mejor calidad de video disponible
-      final manifest = await _yt.videos.streamsClient.getManifest(video.id);
-      if (!mounted) return;
-
-      final streamInfo = manifest.muxed.withHighestBitrate();
-
-      // Obtener el directorio de documentos de la aplicación
-      final directory = await getApplicationDocumentsDirectory();
-      if (!mounted) return;
-
-      final filePath = '${directory.path}/${video.title}.mp4';
-
-      // Descargar el video
-      final file = File(filePath);
-      final fileStream = file.openWrite();
-
-      final stream = _yt.videos.streamsClient.get(streamInfo);
-      final len = streamInfo.size.totalBytes;
-      var count = 0;
-
-      await for (final data in stream) {
-        if (!mounted) {
-          await fileStream.close();
-          return;
-        }
-        count += data.length;
-        setState(() {
-          _downloadProgress = count / len;
-        });
-        fileStream.add(data);
-      }
-
-      await fileStream.flush();
-      await fileStream.close();
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Video descargado en: $filePath')),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al descargar el video: $e')),
-      );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isDownloading = false;
-        });
-      }
-    }
-  }
-
   Widget _buildErrorMessage() {
     return Card(
       child: Padding(
@@ -229,7 +152,6 @@ class _VideoContentViewState extends State<VideoContentView> {
               onPressed: () {
                 setState(() {
                   _hasError = false;
-                  _isPlayerReady = false;
                   _isLoading = true;
                   _initializeVideo();
                 });
@@ -313,7 +235,6 @@ class _VideoContentViewState extends State<VideoContentView> {
             onReady: () {
               setState(() {
                 _hasError = false;
-                _isPlayerReady = true;
                 _isLoading = false;
               });
             },
@@ -362,7 +283,6 @@ class _VideoContentViewState extends State<VideoContentView> {
             onReady: () {
               setState(() {
                 _hasError = false;
-                _isPlayerReady = true;
                 _isLoading = false;
               });
             },
@@ -387,23 +307,6 @@ class _VideoContentViewState extends State<VideoContentView> {
               ),
             ],
           ),
-        const SizedBox(height: 16),
-        if (_isValidVideo && !_hasError && _isPlayerReady && !_isLoading)
-          if (_isDownloading)
-            Column(
-              children: [
-                LinearProgressIndicator(value: _downloadProgress),
-                const SizedBox(height: 8),
-                Text(
-                    'Descargando: ${(_downloadProgress * 100).toStringAsFixed(1)}%'),
-              ],
-            )
-          else
-            ElevatedButton.icon(
-              onPressed: _downloadVideo,
-              icon: const Icon(Icons.download),
-              label: const Text('Descargar Video'),
-            ),
       ],
     );
   }

@@ -5,7 +5,6 @@ import 'package:uciberseguridad_app/src/models/local_quiz.dart';
 import 'package:uciberseguridad_app/src/services/quiz_service.dart';
 import 'package:uciberseguridad_app/src/screens/quiz/quiz_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 
 // Events
 abstract class QuizEvent extends Equatable {
