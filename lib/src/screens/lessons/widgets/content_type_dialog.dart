@@ -6,9 +6,9 @@ class ContentTypeDialog extends StatelessWidget {
   final Function(ContentType type) onTypeSelected;
 
   const ContentTypeDialog({
-    Key? key,
+    super.key,
     required this.onTypeSelected,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

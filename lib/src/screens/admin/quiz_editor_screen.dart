@@ -3,13 +3,13 @@ import '../../models/local_quiz.dart';
 import '../../services/quiz_service.dart';
 
 class QuizEditorScreen extends StatefulWidget {
-  final String contentId;
+  final String lessonId;
   final String contentTitle;
   final LocalQuiz? existingQuiz;
 
   const QuizEditorScreen({
     super.key,
-    required this.contentId,
+    required this.lessonId,
     required this.contentTitle,
     this.existingQuiz,
   });
@@ -81,14 +81,14 @@ class _QuizEditorScreenState extends State<QuizEditorScreen> {
           .toList();
 
       if (widget.existingQuiz != null) {
-        await QuizService().updateQuiz(
-          widget.existingQuiz!.id,
+        await QuizService.instance.updateQuiz(
+          localId: widget.existingQuiz!.id.toString(),
           title: _titleController.text,
           questions: questions,
         );
       } else {
-        await QuizService().createQuiz(
-          contentId: widget.contentId,
+        await QuizService.instance.createQuiz(
+          subjectId: widget.lessonId,
           title: _titleController.text,
           questions: questions,
         );
@@ -155,7 +155,7 @@ class _QuizEditorScreenState extends State<QuizEditorScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor:
                                 Theme.of(context).colorScheme.secondary,
-                            foregroundColor: Colors.white,
+                            foregroundColor: Colors.black,
                           ),
                         ),
                       ],
@@ -168,7 +168,7 @@ class _QuizEditorScreenState extends State<QuizEditorScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor:
                             Theme.of(context).colorScheme.secondary,
-                        foregroundColor: Colors.white,
+                        foregroundColor: Colors.black,
                         minimumSize: const Size(double.infinity, 50),
                       ),
                       child: const Text('Guardar Cuestionario'),

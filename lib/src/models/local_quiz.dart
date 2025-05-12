@@ -23,7 +23,7 @@ class LocalQuiz {
   Id id = Isar.autoIncrement;
 
   @Index()
-  late String contentId;
+  late String lessonId;
 
   late String title;
 
@@ -33,11 +33,14 @@ class LocalQuiz {
 
   late DateTime updatedAt;
 
+  String supabaseId;
+
   LocalQuiz({
-    required this.contentId,
+    required this.lessonId,
     required this.title,
     required this.questions,
     required this.createdAt,
     required this.updatedAt,
+    required this.supabaseId,
   });
 }

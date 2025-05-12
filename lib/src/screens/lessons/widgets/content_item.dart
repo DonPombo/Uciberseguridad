@@ -26,30 +26,12 @@ class ContentItem extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    content.title,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                if (isAdmin) ...[
-                  IconButton(
-                    onPressed: onEdit,
-                    icon: const Icon(Icons.edit),
-                    color: AppTheme.accentColor,
-                  ),
-                  IconButton(
-                    onPressed: onDelete,
-                    icon: const Icon(Icons.delete),
-                    color: Colors.red,
-                  ),
-                ],
-              ],
+            Text(
+              content.title,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 16),
             if (content.contentType == ContentType.text)
@@ -63,6 +45,21 @@ class ContentItem extends StatelessWidget {
                 videoUrl: content.videoUrl!,
                 title: content.title,
               ),
+            if (isAdmin) ...[
+              const SizedBox(width: 16),
+              Row(mainAxisAlignment: MainAxisAlignment.start, children: [
+                IconButton(
+                  onPressed: onEdit,
+                  icon: const Icon(Icons.edit),
+                  color: AppTheme.accentColor,
+                ),
+                IconButton(
+                  onPressed: onDelete,
+                  icon: const Icon(Icons.delete),
+                  color: Colors.red,
+                ),
+              ])
+            ],
           ],
         ),
       ),

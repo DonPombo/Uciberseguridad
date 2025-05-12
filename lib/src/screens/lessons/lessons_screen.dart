@@ -7,6 +7,7 @@ import 'package:uciberseguridad_app/src/services/lesson_service.dart';
 import 'package:uciberseguridad_app/src/services/sync_service.dart';
 import 'package:uciberseguridad_app/src/models/lesson.dart';
 import 'package:uciberseguridad_app/src/screens/lessons/lessons_screens/subject_detail_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LessonsScreen extends StatefulWidget {
   const LessonsScreen({super.key});
@@ -33,7 +34,7 @@ class _LessonsScreenState extends State<LessonsScreen> {
 
   Future<void> _initializeServices() async {
     await _lessonService.init();
-    _syncService = SyncService(_lessonService);
+    _syncService = SyncService(_lessonService, Supabase.instance.client);
     _syncService.startSync();
     await _checkAdminStatus();
     await _loadLessons();
@@ -482,8 +483,8 @@ class _LessonsScreenState extends State<LessonsScreen> {
                       context,
                       MaterialPageRoute(
                         builder: (context) => SubjectDetailScreen(
-                          lessonId: lesson.id,
-                          subjectTitle: lesson.title,
+                          subjectId: lesson.id,
+                          subjectName: lesson.title,
                         ),
                       ),
                     );

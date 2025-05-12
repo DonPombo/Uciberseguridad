@@ -36,19 +36,17 @@ Widget buildActionSection(
                     context,
                     MaterialPageRoute(
                       builder: (context) => SubjectDetailScreen(
-                        lessonId: lessonId,
-                        subjectTitle: title,
+                        subjectId: lessonId,
+                        subjectName: title,
                       ),
                     ),
                   );
                 },
-                child: Text(
-                  buttonText,
-                  style: const TextStyle(
+                child: Text(buttonText,
+                    style: const TextStyle(
                       color: AppTheme.accentColor,
                       fontWeight: FontWeight.bold,
-                  )
-                ),
+                    )),
               ),
           ],
         );
@@ -79,8 +77,8 @@ Widget buildActionSection(
                     context,
                     MaterialPageRoute(
                       builder: (context) => SubjectDetailScreen(
-                        lessonId: lessonId,
-                        subjectTitle: title,
+                        subjectId: lessonId,
+                        subjectName: title,
                       ),
                     ),
                   );

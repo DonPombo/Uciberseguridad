@@ -32,8 +32,8 @@ class AppRouter {
           final Map<String, dynamic> extra =
               state.extra as Map<String, dynamic>;
           return SubjectDetailScreen(
-            lessonId: extra['lessonId'] as String,
-            subjectTitle: extra['subjectTitle'] as String,
+            subjectId: extra['lessonId'] as String,
+            subjectName: extra['subjectTitle'] as String,
           );
         },
       ),
@@ -45,6 +45,7 @@ class AppRouter {
           return LessonContentScreen(
             lessonTitle: extra['lessonTitle'] as String,
             subjectId: extra['subjectId'] as String,
+            lessonId: extra['lessonId'] as String,
           );
         },
       ),

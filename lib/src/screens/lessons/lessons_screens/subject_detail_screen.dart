@@ -6,15 +6,18 @@ import 'package:uciberseguridad_app/theme/app_theme.dart';
 import 'package:uciberseguridad_app/src/services/auth_service.dart';
 import 'package:uciberseguridad_app/src/services/subject_service.dart';
 import 'package:uciberseguridad_app/src/models/subject.dart';
+import 'package:uciberseguridad_app/src/services/lesson_service.dart';
+import 'package:uciberseguridad_app/src/services/sync_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SubjectDetailScreen extends StatefulWidget {
-  final String lessonId;
-  final String subjectTitle;
+  final String subjectId;
+  final String subjectName;
 
   const SubjectDetailScreen({
     super.key,
-    required this.lessonId,
-    required this.subjectTitle,
+    required this.subjectId,
+    required this.subjectName,
   });
 
   @override
@@ -24,6 +27,8 @@ class SubjectDetailScreen extends StatefulWidget {
 class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
   final SubjectService _subjectService = SubjectService();
   final AuthService _authService = AuthService();
+  final LessonService _lessonService = LessonService.instance;
+  late final SyncService _syncService;
   bool _isAdmin = false;
   List<Subject> _subjects = [];
   bool _isLoading = true;
@@ -32,8 +37,15 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _checkAdminStatus();
-    _loadSubjects();
+    _initializeServices();
+  }
+
+  Future<void> _initializeServices() async {
+    await _lessonService.init();
+    _syncService = SyncService(_lessonService, Supabase.instance.client);
+    _syncService.startSync();
+    await _checkAdminStatus();
+    await _loadSubjects();
   }
 
   Future<void> _checkAdminStatus() async {
@@ -45,11 +57,16 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
 
   Future<void> _loadSubjects() async {
     setState(() => _isLoading = true);
-    final subjects = await _subjectService.getSubjects(widget.lessonId);
+    final subjects = await _subjectService.getSubjects(widget.subjectId);
     setState(() {
       _subjects = subjects;
       _isLoading = false;
     });
+  }
+
+  Future<void> _refreshContents() async {
+    setState(() => _isLoading = true);
+    await _loadSubjects();
   }
 
   void _showCreateSubjectDialog() {
@@ -77,10 +94,11 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                 onSubmit: (title, description, duration, iconName) async {
                   Navigator.pop(dialogContext);
                   final subject = await _subjectService.createSubject(
-                    lessonId: widget.lessonId,
+                    lessonId: widget.subjectId,
                     title: title,
                     description: description,
                   );
+                  debugPrint('🟣 Subtema creado. subject.id: \\${subject?.id}');
                   if (subject != null && mounted) {
                     if (!mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -274,7 +292,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
           ? FloatingActionButton(
               onPressed: _showCreateSubjectDialog,
               backgroundColor: AppTheme.accentColor,
-              child: const Icon(Icons.add),
+              child: const Icon(Icons.add, color: Colors.black),
             )
           : null,
     );
@@ -285,7 +303,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
       expandedHeight: 300,
       pinned: true,
       flexibleSpace: FlexibleSpaceBar(
-        title: Text(widget.subjectTitle),
+        title: Text(widget.subjectName),
         background: Stack(
           fit: StackFit.expand,
           children: [
@@ -378,6 +396,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
   }
 
   Widget _buildSubjectItem(Subject subject) {
+    debugPrint('🟢 subject.id (debería ser UUID): ${subject.id}');
     return BlocBuilder<NavigationBloc, NavigationState>(
       builder: (context, state) {
         return GestureDetector(
@@ -388,6 +407,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                 builder: (context) => LessonContentScreen(
                   lessonTitle: subject.title,
                   subjectId: subject.id,
+                  lessonId: subject.id,
                 ),
               ),
             );
@@ -406,57 +426,61 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                 ),
               ],
             ),
-            child: Row(
+            child: Column(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(
-                    _getIconData(subject.iconName),
-                    color: AppTheme.primaryColor,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        subject.title,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      if (subject.description != null) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          subject.description!,
-                          style: TextStyle(
-                            color: AppTheme.textColor.withOpacity(0.6),
-                            fontSize: 14,
+                      child: Icon(
+                        _getIconData(subject.iconName),
+                        color: AppTheme.primaryColor,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            subject.title,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
                           ),
-                        ),
-                      ],
-                      if (subject.duration != null) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          subject.duration!,
-                          style: TextStyle(
-                            color: AppTheme.textColor.withOpacity(0.6),
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
+                          if (subject.description != null) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              subject.description!,
+                              style: TextStyle(
+                                color: AppTheme.textColor.withOpacity(0.6),
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                          if (subject.duration != null) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              subject.duration!,
+                              style: TextStyle(
+                                color: AppTheme.textColor.withOpacity(0.6),
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
                 if (_isAdmin)
                   Row(
-                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       IconButton(
                         icon:

@@ -17,15 +17,15 @@ const LocalQuizSchema = CollectionSchema(
   name: r'localQuizs',
   id: 2006345696715514838,
   properties: {
-    r'contentId': PropertySchema(
-      id: 0,
-      name: r'contentId',
-      type: IsarType.string,
-    ),
     r'createdAt': PropertySchema(
-      id: 1,
+      id: 0,
       name: r'createdAt',
       type: IsarType.dateTime,
+    ),
+    r'lessonId': PropertySchema(
+      id: 1,
+      name: r'lessonId',
+      type: IsarType.string,
     ),
     r'questions': PropertySchema(
       id: 2,
@@ -33,13 +33,18 @@ const LocalQuizSchema = CollectionSchema(
       type: IsarType.objectList,
       target: r'LocalQuizQuestion',
     ),
-    r'title': PropertySchema(
+    r'supabaseId': PropertySchema(
       id: 3,
+      name: r'supabaseId',
+      type: IsarType.string,
+    ),
+    r'title': PropertySchema(
+      id: 4,
       name: r'title',
       type: IsarType.string,
     ),
     r'updatedAt': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'updatedAt',
       type: IsarType.dateTime,
     )
@@ -50,14 +55,14 @@ const LocalQuizSchema = CollectionSchema(
   deserializeProp: _localQuizDeserializeProp,
   idName: r'id',
   indexes: {
-    r'contentId': IndexSchema(
-      id: -332487537278013663,
-      name: r'contentId',
+    r'lessonId': IndexSchema(
+      id: 2130166291500416829,
+      name: r'lessonId',
       unique: false,
       replace: false,
       properties: [
         IndexPropertySchema(
-          name: r'contentId',
+          name: r'lessonId',
           type: IndexType.hash,
           caseSensitive: true,
         )
@@ -78,7 +83,7 @@ int _localQuizEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
-  bytesCount += 3 + object.contentId.length * 3;
+  bytesCount += 3 + object.lessonId.length * 3;
   bytesCount += 3 + object.questions.length * 3;
   {
     final offsets = allOffsets[LocalQuizQuestion]!;
@@ -88,6 +93,7 @@ int _localQuizEstimateSize(
           LocalQuizQuestionSchema.estimateSize(value, offsets, allOffsets);
     }
   }
+  bytesCount += 3 + object.supabaseId.length * 3;
   bytesCount += 3 + object.title.length * 3;
   return bytesCount;
 }
@@ -98,16 +104,17 @@ void _localQuizSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeString(offsets[0], object.contentId);
-  writer.writeDateTime(offsets[1], object.createdAt);
+  writer.writeDateTime(offsets[0], object.createdAt);
+  writer.writeString(offsets[1], object.lessonId);
   writer.writeObjectList<LocalQuizQuestion>(
     offsets[2],
     allOffsets,
     LocalQuizQuestionSchema.serialize,
     object.questions,
   );
-  writer.writeString(offsets[3], object.title);
-  writer.writeDateTime(offsets[4], object.updatedAt);
+  writer.writeString(offsets[3], object.supabaseId);
+  writer.writeString(offsets[4], object.title);
+  writer.writeDateTime(offsets[5], object.updatedAt);
 }
 
 LocalQuiz _localQuizDeserialize(
@@ -117,8 +124,8 @@ LocalQuiz _localQuizDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = LocalQuiz(
-    contentId: reader.readString(offsets[0]),
-    createdAt: reader.readDateTime(offsets[1]),
+    createdAt: reader.readDateTime(offsets[0]),
+    lessonId: reader.readString(offsets[1]),
     questions: reader.readObjectList<LocalQuizQuestion>(
           offsets[2],
           LocalQuizQuestionSchema.deserialize,
@@ -126,8 +133,9 @@ LocalQuiz _localQuizDeserialize(
           LocalQuizQuestion(),
         ) ??
         [],
-    title: reader.readString(offsets[3]),
-    updatedAt: reader.readDateTime(offsets[4]),
+    supabaseId: reader.readString(offsets[3]),
+    title: reader.readString(offsets[4]),
+    updatedAt: reader.readDateTime(offsets[5]),
   );
   object.id = id;
   return object;
@@ -141,9 +149,9 @@ P _localQuizDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readString(offset)) as P;
-    case 1:
       return (reader.readDateTime(offset)) as P;
+    case 1:
+      return (reader.readString(offset)) as P;
     case 2:
       return (reader.readObjectList<LocalQuizQuestion>(
             offset,
@@ -155,6 +163,8 @@ P _localQuizDeserializeProp<P>(
     case 3:
       return (reader.readString(offset)) as P;
     case 4:
+      return (reader.readString(offset)) as P;
+    case 5:
       return (reader.readDateTime(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -249,45 +259,45 @@ extension LocalQuizQueryWhere
     });
   }
 
-  QueryBuilder<LocalQuiz, LocalQuiz, QAfterWhereClause> contentIdEqualTo(
-      String contentId) {
+  QueryBuilder<LocalQuiz, LocalQuiz, QAfterWhereClause> lessonIdEqualTo(
+      String lessonId) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(IndexWhereClause.equalTo(
-        indexName: r'contentId',
-        value: [contentId],
+        indexName: r'lessonId',
+        value: [lessonId],
       ));
     });
   }
 
-  QueryBuilder<LocalQuiz, LocalQuiz, QAfterWhereClause> contentIdNotEqualTo(
-      String contentId) {
+  QueryBuilder<LocalQuiz, LocalQuiz, QAfterWhereClause> lessonIdNotEqualTo(
+      String lessonId) {
     return QueryBuilder.apply(this, (query) {
       if (query.whereSort == Sort.asc) {
         return query
             .addWhereClause(IndexWhereClause.between(
-              indexName: r'contentId',
+              indexName: r'lessonId',
               lower: [],
-              upper: [contentId],
+              upper: [lessonId],
               includeUpper: false,
             ))
             .addWhereClause(IndexWhereClause.between(
-              indexName: r'contentId',
-              lower: [contentId],
+              indexName: r'lessonId',
+              lower: [lessonId],
               includeLower: false,
               upper: [],
             ));
       } else {
         return query
             .addWhereClause(IndexWhereClause.between(
-              indexName: r'contentId',
-              lower: [contentId],
+              indexName: r'lessonId',
+              lower: [lessonId],
               includeLower: false,
               upper: [],
             ))
             .addWhereClause(IndexWhereClause.between(
-              indexName: r'contentId',
+              indexName: r'lessonId',
               lower: [],
-              upper: [contentId],
+              upper: [lessonId],
               includeUpper: false,
             ));
       }
@@ -297,138 +307,6 @@ extension LocalQuizQueryWhere
 
 extension LocalQuizQueryFilter
     on QueryBuilder<LocalQuiz, LocalQuiz, QFilterCondition> {
-  QueryBuilder<LocalQuiz, LocalQuiz, QAfterFilterCondition> contentIdEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'contentId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<LocalQuiz, LocalQuiz, QAfterFilterCondition>
-      contentIdGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'contentId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<LocalQuiz, LocalQuiz, QAfterFilterCondition> contentIdLessThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'contentId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<LocalQuiz, LocalQuiz, QAfterFilterCondition> contentIdBetween(
-    String lower,
-    String upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'contentId',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<LocalQuiz, LocalQuiz, QAfterFilterCondition> contentIdStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'contentId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<LocalQuiz, LocalQuiz, QAfterFilterCondition> contentIdEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'contentId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<LocalQuiz, LocalQuiz, QAfterFilterCondition> contentIdContains(
-      String value,
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'contentId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<LocalQuiz, LocalQuiz, QAfterFilterCondition> contentIdMatches(
-      String pattern,
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'contentId',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<LocalQuiz, LocalQuiz, QAfterFilterCondition> contentIdIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'contentId',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<LocalQuiz, LocalQuiz, QAfterFilterCondition>
-      contentIdIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'contentId',
-        value: '',
-      ));
-    });
-  }
-
   QueryBuilder<LocalQuiz, LocalQuiz, QAfterFilterCondition> createdAtEqualTo(
       DateTime value) {
     return QueryBuilder.apply(this, (query) {
@@ -536,6 +414,137 @@ extension LocalQuizQueryFilter
     });
   }
 
+  QueryBuilder<LocalQuiz, LocalQuiz, QAfterFilterCondition> lessonIdEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'lessonId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalQuiz, LocalQuiz, QAfterFilterCondition> lessonIdGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'lessonId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalQuiz, LocalQuiz, QAfterFilterCondition> lessonIdLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'lessonId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalQuiz, LocalQuiz, QAfterFilterCondition> lessonIdBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'lessonId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalQuiz, LocalQuiz, QAfterFilterCondition> lessonIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'lessonId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalQuiz, LocalQuiz, QAfterFilterCondition> lessonIdEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'lessonId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalQuiz, LocalQuiz, QAfterFilterCondition> lessonIdContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'lessonId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalQuiz, LocalQuiz, QAfterFilterCondition> lessonIdMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'lessonId',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalQuiz, LocalQuiz, QAfterFilterCondition> lessonIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'lessonId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalQuiz, LocalQuiz, QAfterFilterCondition>
+      lessonIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'lessonId',
+        value: '',
+      ));
+    });
+  }
+
   QueryBuilder<LocalQuiz, LocalQuiz, QAfterFilterCondition>
       questionsLengthEqualTo(int length) {
     return QueryBuilder.apply(this, (query) {
@@ -621,6 +630,140 @@ extension LocalQuizQueryFilter
         upper,
         includeUpper,
       );
+    });
+  }
+
+  QueryBuilder<LocalQuiz, LocalQuiz, QAfterFilterCondition> supabaseIdEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'supabaseId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalQuiz, LocalQuiz, QAfterFilterCondition>
+      supabaseIdGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'supabaseId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalQuiz, LocalQuiz, QAfterFilterCondition> supabaseIdLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'supabaseId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalQuiz, LocalQuiz, QAfterFilterCondition> supabaseIdBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'supabaseId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalQuiz, LocalQuiz, QAfterFilterCondition>
+      supabaseIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'supabaseId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalQuiz, LocalQuiz, QAfterFilterCondition> supabaseIdEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'supabaseId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalQuiz, LocalQuiz, QAfterFilterCondition> supabaseIdContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'supabaseId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalQuiz, LocalQuiz, QAfterFilterCondition> supabaseIdMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'supabaseId',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalQuiz, LocalQuiz, QAfterFilterCondition>
+      supabaseIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'supabaseId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalQuiz, LocalQuiz, QAfterFilterCondition>
+      supabaseIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'supabaseId',
+        value: '',
+      ));
     });
   }
 
@@ -823,18 +966,6 @@ extension LocalQuizQueryLinks
     on QueryBuilder<LocalQuiz, LocalQuiz, QFilterCondition> {}
 
 extension LocalQuizQuerySortBy on QueryBuilder<LocalQuiz, LocalQuiz, QSortBy> {
-  QueryBuilder<LocalQuiz, LocalQuiz, QAfterSortBy> sortByContentId() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'contentId', Sort.asc);
-    });
-  }
-
-  QueryBuilder<LocalQuiz, LocalQuiz, QAfterSortBy> sortByContentIdDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'contentId', Sort.desc);
-    });
-  }
-
   QueryBuilder<LocalQuiz, LocalQuiz, QAfterSortBy> sortByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.asc);
@@ -844,6 +975,30 @@ extension LocalQuizQuerySortBy on QueryBuilder<LocalQuiz, LocalQuiz, QSortBy> {
   QueryBuilder<LocalQuiz, LocalQuiz, QAfterSortBy> sortByCreatedAtDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalQuiz, LocalQuiz, QAfterSortBy> sortByLessonId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lessonId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalQuiz, LocalQuiz, QAfterSortBy> sortByLessonIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lessonId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalQuiz, LocalQuiz, QAfterSortBy> sortBySupabaseId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'supabaseId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalQuiz, LocalQuiz, QAfterSortBy> sortBySupabaseIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'supabaseId', Sort.desc);
     });
   }
 
@@ -874,18 +1029,6 @@ extension LocalQuizQuerySortBy on QueryBuilder<LocalQuiz, LocalQuiz, QSortBy> {
 
 extension LocalQuizQuerySortThenBy
     on QueryBuilder<LocalQuiz, LocalQuiz, QSortThenBy> {
-  QueryBuilder<LocalQuiz, LocalQuiz, QAfterSortBy> thenByContentId() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'contentId', Sort.asc);
-    });
-  }
-
-  QueryBuilder<LocalQuiz, LocalQuiz, QAfterSortBy> thenByContentIdDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'contentId', Sort.desc);
-    });
-  }
-
   QueryBuilder<LocalQuiz, LocalQuiz, QAfterSortBy> thenByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.asc);
@@ -907,6 +1050,30 @@ extension LocalQuizQuerySortThenBy
   QueryBuilder<LocalQuiz, LocalQuiz, QAfterSortBy> thenByIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalQuiz, LocalQuiz, QAfterSortBy> thenByLessonId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lessonId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalQuiz, LocalQuiz, QAfterSortBy> thenByLessonIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lessonId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalQuiz, LocalQuiz, QAfterSortBy> thenBySupabaseId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'supabaseId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalQuiz, LocalQuiz, QAfterSortBy> thenBySupabaseIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'supabaseId', Sort.desc);
     });
   }
 
@@ -937,16 +1104,23 @@ extension LocalQuizQuerySortThenBy
 
 extension LocalQuizQueryWhereDistinct
     on QueryBuilder<LocalQuiz, LocalQuiz, QDistinct> {
-  QueryBuilder<LocalQuiz, LocalQuiz, QDistinct> distinctByContentId(
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'contentId', caseSensitive: caseSensitive);
-    });
-  }
-
   QueryBuilder<LocalQuiz, LocalQuiz, QDistinct> distinctByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'createdAt');
+    });
+  }
+
+  QueryBuilder<LocalQuiz, LocalQuiz, QDistinct> distinctByLessonId(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'lessonId', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<LocalQuiz, LocalQuiz, QDistinct> distinctBySupabaseId(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'supabaseId', caseSensitive: caseSensitive);
     });
   }
 
@@ -972,15 +1146,15 @@ extension LocalQuizQueryProperty
     });
   }
 
-  QueryBuilder<LocalQuiz, String, QQueryOperations> contentIdProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'contentId');
-    });
-  }
-
   QueryBuilder<LocalQuiz, DateTime, QQueryOperations> createdAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'createdAt');
+    });
+  }
+
+  QueryBuilder<LocalQuiz, String, QQueryOperations> lessonIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'lessonId');
     });
   }
 
@@ -988,6 +1162,12 @@ extension LocalQuizQueryProperty
       questionsProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'questions');
+    });
+  }
+
+  QueryBuilder<LocalQuiz, String, QQueryOperations> supabaseIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'supabaseId');
     });
   }
 

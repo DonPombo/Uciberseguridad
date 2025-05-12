@@ -9,15 +9,18 @@ import 'package:uciberseguridad_app/src/screens/lessons/widgets/content_form.dar
 import 'package:uciberseguridad_app/src/screens/lessons/widgets/content_item.dart';
 import 'package:uciberseguridad_app/src/screens/admin/quiz_editor_screen.dart';
 import 'package:uciberseguridad_app/src/screens/quiz/quiz_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LessonContentScreen extends StatefulWidget {
   final String lessonTitle;
   final String subjectId;
+  final String lessonId;
 
   const LessonContentScreen({
     super.key,
     required this.lessonTitle,
     required this.subjectId,
+    required this.lessonId,
   });
 
   @override
@@ -25,8 +28,8 @@ class LessonContentScreen extends StatefulWidget {
 }
 
 class _LessonContentScreenState extends State<LessonContentScreen> {
-  final LessonContentService _contentService = LessonContentService();
-  final QuizService _quizService = QuizService();
+  late final LessonContentService _contentService;
+  final QuizService _quizService = QuizService.instance;
   final AuthService _authService = AuthService();
   bool _isAdmin = false;
   List<LessonContent> _contents = [];
@@ -36,6 +39,7 @@ class _LessonContentScreenState extends State<LessonContentScreen> {
   @override
   void initState() {
     super.initState();
+    _contentService = LessonContentService(Supabase.instance.client);
     debugPrint('🚀 Inicializando LessonContentScreen');
     debugPrint('   - Subject ID: ${widget.subjectId}');
     debugPrint('   - Lesson Title: ${widget.lessonTitle}');
@@ -60,50 +64,50 @@ class _LessonContentScreenState extends State<LessonContentScreen> {
     debugPrint('   - Lesson Title: ${widget.lessonTitle}');
 
     setState(() => _isLoading = true);
-    final contents = await _contentService.getContents(widget.subjectId);
-    debugPrint('\n📚 Contenidos cargados: ${contents.length}');
 
-    // Cargar los cuestionarios asociados a cada contenido
-    final quizzes = <String, LocalQuiz?>{};
-    debugPrint('\n🔍 INICIO DE CARGA DE CUESTIONARIOS');
-    debugPrint('===================================');
+    try {
+      final contents = await _contentService.getContents(widget.subjectId);
+      debugPrint('\n📚 Contenidos cargados: ${contents.length}');
 
-    for (var content in contents) {
-      debugPrint('\n   📝 Procesando contenido:');
-      debugPrint('      - ID: ${content.id}');
-      debugPrint('      - Título: ${content.title}');
-      debugPrint('      - Tipo: ${content.contentType}');
-      debugPrint('      - Orden: ${content.orderIndex}');
+      // Cargar los cuestionarios asociados a cada contenido
+      final quizzes = <String, LocalQuiz?>{};
+      debugPrint('\n🔍 INICIO DE CARGA DE CUESTIONARIOS');
+      debugPrint('===================================');
 
-      final contentQuizzes =
-          await _quizService.getQuizzesByContentId(content.id);
-      debugPrint('      - Cuestionarios encontrados: ${contentQuizzes.length}');
+      // Cargar el quiz del subtema una sola vez
+      final subjectQuizzes =
+          await _quizService.getQuizzesByLessonId(widget.subjectId);
+      debugPrint('\n   📝 Procesando quiz del subtema:');
+      debugPrint('      - Subject ID: ${widget.subjectId}');
+      debugPrint('      - Cuestionarios encontrados: ${subjectQuizzes.length}');
 
-      if (contentQuizzes.isNotEmpty) {
+      if (subjectQuizzes.isNotEmpty) {
         debugPrint('      - Detalles del cuestionario:');
-        debugPrint('         * ID: ${contentQuizzes.first.id}');
-        debugPrint('         * Título: ${contentQuizzes.first.title}');
+        debugPrint('         * ID: ${subjectQuizzes.first.id}');
+        debugPrint('         * Título: ${subjectQuizzes.first.title}');
         debugPrint(
-            '         * Preguntas: ${contentQuizzes.first.questions.length}');
-        debugPrint('         * Content ID: ${contentQuizzes.first.contentId}');
+            '         * Preguntas: ${subjectQuizzes.first.questions.length}');
+        debugPrint('         * Subject ID: ${subjectQuizzes.first.lessonId}');
+
+        // Asignar el mismo quiz a todos los contenidos del subtema
+        for (var content in contents) {
+          quizzes[content.id] = subjectQuizzes.first;
+        }
       }
 
-      quizzes[content.id] =
-          contentQuizzes.isNotEmpty ? contentQuizzes.first : null;
+      if (mounted) {
+        setState(() {
+          _contents = contents;
+          _contentQuizzes = quizzes;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('❌ Error cargando contenidos: $e');
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
-
-    setState(() {
-      _contents = contents;
-      _contentQuizzes = quizzes;
-      _isLoading = false;
-    });
-
-    debugPrint('\n✅ RESUMEN DE CARGA');
-    debugPrint('===================');
-    debugPrint('   - Total contenidos: ${_contents.length}');
-    debugPrint('   - Total cuestionarios: ${_contentQuizzes.length}');
-    debugPrint('   - Estado de carga: $_isLoading');
-    debugPrint('   - Es administrador: $_isAdmin');
   }
 
   void _showCreateContentDialog() {
@@ -251,7 +255,7 @@ class _LessonContentScreenState extends State<LessonContentScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => QuizEditorScreen(
-          contentId: content.id,
+          lessonId: widget.subjectId,
           contentTitle: content.title,
           existingQuiz: existingQuiz,
         ),
@@ -283,14 +287,14 @@ class _LessonContentScreenState extends State<LessonContentScreen> {
 
     if (!mounted) return;
     debugPrint('   - Navegando a QuizScreen con:');
-    debugPrint('      * lessonId: ${content.id}');
+    debugPrint('      * lessonId: ${widget.subjectId}');
     debugPrint('      * lessonTitle: ${quiz.title}');
 
     await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => QuizScreen(
-          lessonId: content.id,
+          lessonId: widget.subjectId,
           lessonTitle: quiz.title,
         ),
       ),
@@ -336,7 +340,7 @@ class _LessonContentScreenState extends State<LessonContentScreen> {
               onPressed: () => _showAddOptionsDialog(context),
               backgroundColor: AppTheme.accentColor,
               shape: const CircleBorder(),
-              child: const Icon(Icons.add),
+              child: const Icon(Icons.add, color: Colors.black),
             )
           : null,
     );
@@ -431,7 +435,7 @@ class _LessonContentScreenState extends State<LessonContentScreen> {
       }).toList(),
     );
   }
-  // TODO: Hay cuestionarios nulos y eso no puede ser xq deberia salirte que no existe ningun cuestinario
+
   Widget _buildBottomQuizButton(BuildContext context) {
     debugPrint('\n🔘 CONSTRUYENDO BOTÓN INFERIOR DE QUIZ');
     debugPrint('=====================================');
@@ -448,7 +452,7 @@ class _LessonContentScreenState extends State<LessonContentScreen> {
       debugPrint(
           '      * Título: ${_contentQuizzes[_contents.first.id]?.title}');
       debugPrint(
-          '      * Content ID: ${_contentQuizzes[_contents.first.id]?.contentId}');
+          '      * Content ID: ${_contentQuizzes[_contents.first.id]?.lessonId}');
     }
 
     return Container(
@@ -490,24 +494,25 @@ class _LessonContentScreenState extends State<LessonContentScreen> {
           children: [
             const Text('¿Qué deseas hacer?'),
             const SizedBox(height: 16),
-            ListTile(
-              leading: const Icon(Icons.add),
-              title: const Text('Crear nuevo cuestionario'),
-              onTap: () {
-                Navigator.pop(context);
-                if (_contents.isNotEmpty) {
-                  _createOrEditQuiz(_contents.first);
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                          'Primero debes crear contenido para poder agregar un cuestionario'),
-                    ),
-                  );
-                }
-              },
-            ),
-            if (_contentQuizzes.isNotEmpty) ...[
+            if (_contentQuizzes.isEmpty) ...[
+              ListTile(
+                leading: const Icon(Icons.add),
+                title: const Text('Crear nuevo cuestionario'),
+                onTap: () {
+                  Navigator.pop(context);
+                  if (_contents.isNotEmpty) {
+                    _createOrEditQuiz(_contents.first);
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                            'Primero debes crear contenido para poder agregar un cuestionario'),
+                      ),
+                    );
+                  }
+                },
+              ),
+            ] else ...[
               ListTile(
                 leading: const Icon(Icons.edit),
                 title: const Text('Editar cuestionario existente'),

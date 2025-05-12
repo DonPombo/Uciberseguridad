@@ -2,9 +2,11 @@ import 'package:flutter/foundation.dart';
 import '../models/subject.dart';
 import '../models/local_subject.dart';
 import 'local_storage_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SubjectService {
   final LocalStorageService _localStorage = LocalStorageService();
+  final SupabaseClient _supabaseClient = Supabase.instance.client;
 
   // Obtener todos los subtemas de una lección
   Future<List<Subject>> getSubjects(String lessonId) async {
@@ -39,16 +41,41 @@ class SubjectService {
     String? iconName,
   }) async {
     try {
+      debugPrint('\n📝 CREANDO SUBTEMA');
+      debugPrint('================================');
+      debugPrint('   - Lesson ID: $lessonId');
+      debugPrint('   - Título: $title');
+      debugPrint('   - Descripción: $description');
+
       // Obtener el último orden
       final lastOrder = await _getLastOrder(lessonId);
       final now = DateTime.now();
 
-      // Crear ID único para el tema local
-      final localId = DateTime.now().millisecondsSinceEpoch.toString();
+      // Crear en Supabase
+      debugPrint('   - Enviando datos a Supabase...');
+      final supabaseData = {
+        'lesson_id': lessonId,
+        'title': title,
+        'description': description,
+        'duration': duration,
+        'icon_name': iconName,
+        'order_index': lastOrder + 1,
+        'created_at': now.toIso8601String(),
+      };
+      debugPrint('      ${supabaseData.toString()}');
 
-      // Crear tema local
+      final response = await _supabaseClient
+          .from('subjects')
+          .insert(supabaseData)
+          .select()
+          .single();
+
+      debugPrint('   - Respuesta de Supabase:');
+      debugPrint('      ${response.toString()}');
+
+      // Crear tema local con el ID de Supabase
       final localSubject = LocalSubject(
-        remoteId: localId,
+        remoteId: response['id'],
         lessonId: lessonId,
         title: title,
         description: description,
@@ -62,10 +89,11 @@ class SubjectService {
       );
 
       // Guardar en Isar
+      debugPrint('   - Guardando en Isar...');
       await _localStorage.saveSubject(localSubject);
 
       // Convertir a Subject para la UI
-      return Subject(
+      final subject = Subject(
         id: localSubject.remoteId,
         lessonId: localSubject.lessonId,
         title: localSubject.title,
@@ -76,8 +104,11 @@ class SubjectService {
         createdAt: localSubject.createdAt,
         isActive: localSubject.isActive,
       );
+
+      debugPrint('✅ Subtema creado exitosamente');
+      return subject;
     } catch (e) {
-      debugPrint('Error creando subtema: $e');
+      debugPrint('❌ Error creando subtema: $e');
       return null;
     }
   }

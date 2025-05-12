@@ -94,7 +94,7 @@ class QuizError extends QuizState {
 
 // BLoC
 class QuizBloc extends Bloc<QuizEvent, QuizState> {
-  final QuizService _quizService = QuizService();
+  final QuizService _quizService = QuizService.instance;
 
   QuizBloc() : super(QuizInitial()) {
     on<LoadQuiz>(_onLoadQuiz);
@@ -109,7 +109,7 @@ class QuizBloc extends Bloc<QuizEvent, QuizState> {
     try {
       debugPrint(
           '🔍 Buscando cuestionarios para el contenido ID: ${event.lessonId}');
-      final quizzes = await _quizService.getQuizzesByContentId(event.lessonId);
+      final quizzes = await _quizService.getQuizzesByLessonId(event.lessonId);
       debugPrint('📊 Cuestionarios encontrados: ${quizzes.length}');
 
       if (quizzes.isEmpty) {
@@ -122,7 +122,7 @@ class QuizBloc extends Bloc<QuizEvent, QuizState> {
       debugPrint('✅ Cuestionario encontrado:');
       debugPrint('   - ID: ${quizzes.first.id}');
       debugPrint('   - Título: ${quizzes.first.title}');
-      debugPrint('   - Contenido ID: ${quizzes.first.contentId}');
+      debugPrint('   - Contenido ID: ${quizzes.first.lessonId}');
       debugPrint('   - Número de preguntas: ${quizzes.first.questions.length}');
 
       final quiz = _convertLocalQuizToQuiz(quizzes.first);
@@ -140,11 +140,11 @@ class QuizBloc extends Bloc<QuizEvent, QuizState> {
     debugPrint('🔄 Convirtiendo LocalQuiz a Quiz:');
     debugPrint('   - ID Original: ${localQuiz.id}');
     debugPrint('   - ID Convertido: ${localQuiz.id.toString()}');
-    debugPrint('   - Contenido ID: ${localQuiz.contentId}');
+    debugPrint('   - Contenido ID: ${localQuiz.lessonId}');
 
     final quiz = Quiz(
       id: localQuiz.id.toString(),
-      lessonId: localQuiz.contentId,
+      lessonId: localQuiz.lessonId,
       title: localQuiz.title,
       questions: localQuiz.questions
           .map((q) => QuizQuestion(

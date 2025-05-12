@@ -2,17 +2,28 @@ import 'package:flutter/foundation.dart';
 import '../models/lesson_content.dart';
 import '../models/local_lesson_content.dart';
 import 'local_storage_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LessonContentService {
   final LocalStorageService _localStorage = LocalStorageService();
+  final SupabaseClient _supabaseClient;
+
+  LessonContentService(this._supabaseClient);
 
   Future<List<LessonContent>> getContents(String subjectId) async {
+    debugPrint('\n🔍 OBTENIENDO CONTENIDOS');
+    debugPrint('==================================');
+    debugPrint('   - Subject ID: $subjectId');
+
     try {
       // Obtener contenidos de Isar
+      debugPrint('   - Consultando Isar...');
       final localContents = await _localStorage.getContents(subjectId);
+      debugPrint(
+          '   - Contenidos encontrados en Isar: ${localContents.length}');
 
       // Convertir a LessonContent para la UI
-      return localContents
+      final contents = localContents
           .map((local) => LessonContent(
                 id: local.remoteId,
                 subjectId: local.subjectId,
@@ -27,8 +38,11 @@ class LessonContentService {
                 updatedAt: local.updatedAt,
               ))
           .toList();
+
+      debugPrint('✅ Contenidos obtenidos exitosamente');
+      return contents;
     } catch (e) {
-      debugPrint('Error obteniendo contenidos de Isar: $e');
+      debugPrint('❌ Error obteniendo contenidos: $e');
       return [];
     }
   }
@@ -40,56 +54,124 @@ class LessonContentService {
     required String content,
     String? videoUrl,
   }) async {
+    debugPrint('\n📝 CREANDO CONTENIDO');
+    debugPrint('================================');
+    debugPrint('   - Subject ID: $subjectId');
+    debugPrint('   - Título: $title');
+    debugPrint('   - Tipo: ${contentType.toString()}');
+    debugPrint('   - Video URL: $videoUrl');
+
     try {
       // Obtener el último orden
       final lastOrder = await _getLastOrder(subjectId);
-
       final now = DateTime.now();
 
-      // Crear ID único para el contenido local
-      final localId = DateTime.now().millisecondsSinceEpoch.toString();
+      // Guardar en Supabase
+      debugPrint('   - Enviando datos a Supabase...');
+      final supabaseData = {
+        'title': title,
+        'content_type': contentType.toString().split('.').last,
+        'content': content,
+        'video_url': videoUrl,
+        'order_index': lastOrder + 1,
+      };
+      debugPrint('      ${supabaseData.toString()}');
 
-      // Crear contenido local
-      final localContent = LocalLessonContent(
-        remoteId: localId,
-        subjectId: subjectId,
-        title: title,
-        contentType: contentType.toString().split('.').last,
-        content: content,
-        videoUrl: videoUrl,
-        orderIndex: lastOrder + 1,
-        createdAt: now,
-        updatedAt: now,
-        isActive: true,
-        lastSyncedAt: now,
-      );
+      // Primero obtener el subject_id correcto de la tabla subjects
+      try {
+        // Buscar el subject en Isar para obtener su remoteId
+        final subject = await _localStorage.getSubject(subjectId);
+        if (subject == null) {
+          debugPrint('❌ Error: No se encontró el subject en Isar');
+          return null;
+        }
 
-      // Guardar en Isar
-      await _localStorage.saveContent(localContent);
+        debugPrint('   - Subject encontrado en Isar:');
+        debugPrint('      * ID local: ${subject.id}');
+        debugPrint('      * ID remoto: ${subject.remoteId}');
 
-      // Convertir a LessonContent para la UI
-      return LessonContent(
-        id: localContent.remoteId,
-        subjectId: localContent.subjectId,
-        title: localContent.title,
-        contentType: contentType,
-        content: localContent.content,
-        videoUrl: localContent.videoUrl,
-        orderIndex: localContent.orderIndex,
-        createdAt: localContent.createdAt,
-        updatedAt: localContent.updatedAt,
-      );
+        // Buscar el subject en Supabase usando el remoteId
+        final subjectResponse = await _supabaseClient
+            .from('subjects')
+            .select('id')
+            .eq('id', subject.remoteId)
+            .single();
+
+        final supabaseSubjectId = subjectResponse['id'];
+        debugPrint('   - Subject ID en Supabase: $supabaseSubjectId');
+
+        // Actualizar el subject_id en los datos
+        supabaseData['subject_id'] = supabaseSubjectId;
+
+        final response = await _supabaseClient
+            .from('lesson_contents')
+            .insert(supabaseData)
+            .select()
+            .single();
+
+        debugPrint('   - Respuesta de Supabase:');
+        debugPrint('      ${response.toString()}');
+
+        // Crear contenido local con el ID de Supabase
+        final localContent = LocalLessonContent(
+          remoteId: response['id'],
+          subjectId: subjectId,
+          title: title,
+          contentType: contentType.toString().split('.').last,
+          content: content,
+          videoUrl: videoUrl,
+          orderIndex: lastOrder + 1,
+          createdAt: now,
+          updatedAt: now,
+          isActive: true,
+          lastSyncedAt: now,
+        );
+
+        // Guardar en Isar
+        debugPrint('   - Guardando en Isar...');
+        await _localStorage.saveContent(localContent);
+
+        // Convertir a LessonContent para la UI
+        final lessonContent = LessonContent(
+          id: response['id'],
+          subjectId: subjectId,
+          title: title,
+          contentType: contentType,
+          content: content,
+          videoUrl: videoUrl,
+          orderIndex: lastOrder + 1,
+          createdAt: now,
+          updatedAt: now,
+        );
+
+        debugPrint('✅ Contenido creado exitosamente');
+        return lessonContent;
+      } catch (e) {
+        debugPrint('❌ Error: No se encontró el subject en Supabase: $e');
+        return null;
+      }
     } catch (e) {
-      debugPrint('Error creando contenido: $e');
+      debugPrint('❌ Error creando contenido: $e');
       return null;
     }
   }
 
-  Future<bool> updateContent(String contentId, Map<String, dynamic> data) async {
+  Future<bool> updateContent(
+      String contentId, Map<String, dynamic> data) async {
+    debugPrint('\n📝 ACTUALIZANDO CONTENIDO');
+    debugPrint('====================================');
+    debugPrint('   - Content ID: $contentId');
+    debugPrint('   - Actualizaciones:');
+    data.forEach((key, value) => debugPrint('      - $key: $value'));
+
     try {
       // Obtener contenido existente
+      debugPrint('   - Obteniendo contenido existente...');
       final existingContent = await _localStorage.getContent(contentId);
-      if (existingContent == null) return false;
+      if (existingContent == null) {
+        debugPrint('❌ Contenido no encontrado en Isar');
+        return false;
+      }
 
       // Crear contenido actualizado
       final updatedContent = LocalLessonContent(
@@ -109,42 +191,56 @@ class LessonContentService {
       );
 
       // Guardar en Isar
+      debugPrint('   - Guardando en Isar...');
       await _localStorage.saveContent(updatedContent);
 
+      // Actualizar en Supabase
+      debugPrint('   - Enviando datos a Supabase...');
+      final supabaseData = {
+        'title': updatedContent.title,
+        'content_type': updatedContent.contentType,
+        'content': updatedContent.content,
+        'video_url': updatedContent.videoUrl,
+        'updated_at': updatedContent.updatedAt.toIso8601String(),
+      };
+      debugPrint('      ${supabaseData.toString()}');
+
+      await _supabaseClient
+          .from('lesson_contents')
+          .update(supabaseData)
+          .eq('id', contentId);
+
+      debugPrint('✅ Contenido actualizado exitosamente');
       return true;
     } catch (e) {
-      debugPrint('Error actualizando contenido: $e');
+      debugPrint('❌ Error actualizando contenido: $e');
       return false;
     }
   }
 
   Future<bool> deleteContent(String contentId) async {
+    debugPrint('\n🗑️ ELIMINANDO CONTENIDO');
+    debugPrint('==================================');
+    debugPrint('   - Content ID: $contentId');
+
     try {
       // Eliminar de Isar
+      debugPrint('   - Eliminando de Isar...');
       await _localStorage.deleteContent(contentId);
+
+      // Eliminar de Supabase
+      debugPrint('   - Eliminando de Supabase...');
+      await _supabaseClient
+          .from('lesson_contents')
+          .delete()
+          .eq('id', contentId);
+
+      debugPrint('✅ Contenido eliminado exitosamente');
       return true;
     } catch (e) {
-      debugPrint('Error eliminando contenido: $e');
+      debugPrint('❌ Error eliminando contenido: $e');
       return false;
     }
-  }
-
-  // Método para descargar contenido
-  Future<void> downloadContent(LessonContent content) async {
-    final localContent = LocalLessonContent.fromRemote({
-      'id': content.id,
-      'subject_id': content.subjectId,
-      'title': content.title,
-      'content_type': content.contentType.toString().split('.').last,
-      'content': content.content,
-      'video_url': content.videoUrl,
-      'order_index': content.orderIndex,
-      'created_at': content.createdAt.toIso8601String(),
-      'updated_at': content.updatedAt.toIso8601String(),
-      'is_active': true,
-    });
-
-    await _localStorage.downloadVideo(localContent);
   }
 
   // Método privado para obtener el último orden
