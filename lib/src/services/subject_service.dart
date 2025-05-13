@@ -37,8 +37,6 @@ class SubjectService {
     required String lessonId,
     required String title,
     String? description,
-    String? duration,
-    String? iconName,
   }) async {
     try {
       debugPrint('\n📝 CREANDO SUBTEMA');
@@ -57,8 +55,6 @@ class SubjectService {
         'lesson_id': lessonId,
         'title': title,
         'description': description,
-        'duration': duration,
-        'icon_name': iconName,
         'order_index': lastOrder + 1,
         'created_at': now.toIso8601String(),
       };
@@ -79,8 +75,8 @@ class SubjectService {
         lessonId: lessonId,
         title: title,
         description: description,
-        duration: duration,
-        iconName: iconName,
+        duration: null,
+        iconName: null,
         orderIndex: lastOrder + 1,
         createdAt: now,
         updatedAt: now,
@@ -98,8 +94,8 @@ class SubjectService {
         lessonId: localSubject.lessonId,
         title: localSubject.title,
         description: localSubject.description,
-        duration: localSubject.duration,
-        iconName: localSubject.iconName,
+        duration: null,
+        iconName: null,
         orderIndex: localSubject.orderIndex,
         createdAt: localSubject.createdAt,
         isActive: localSubject.isActive,
@@ -119,21 +115,31 @@ class SubjectService {
       final existingSubject = await _localStorage.getSubject(id);
       if (existingSubject == null) return false;
 
-      final updatedSubject = LocalSubject(
-        remoteId: existingSubject.remoteId,
-        lessonId: existingSubject.lessonId,
-        title: updates['title'] ?? existingSubject.title,
-        description: updates['description'] ?? existingSubject.description,
-        duration: updates['duration'] ?? existingSubject.duration,
-        iconName: updates['icon_name'] ?? existingSubject.iconName,
-        orderIndex: existingSubject.orderIndex,
-        createdAt: existingSubject.createdAt,
-        updatedAt: DateTime.now(),
-        isActive: existingSubject.isActive,
-        lastSyncedAt: existingSubject.lastSyncedAt,
-      );
+      // Actualizar en Supabase
+      final supabaseData = {
+        'title': updates['title'] ?? existingSubject.title,
+        'description': updates['description'] ?? existingSubject.description,
+        'order_index': existingSubject.orderIndex,
+      };
 
-      await _localStorage.saveSubject(updatedSubject);
+      await _supabaseClient
+          .from('subjects')
+          .update(supabaseData)
+          .eq('id', existingSubject.remoteId);
+
+      // Actualizar el objeto existente
+      existingSubject.title = updates['title'] ?? existingSubject.title;
+      existingSubject.description =
+          updates['description'] ?? existingSubject.description;
+      existingSubject.duration =
+          updates['duration'] ?? existingSubject.duration;
+      existingSubject.iconName =
+          updates['icon_name'] ?? existingSubject.iconName;
+      existingSubject.updatedAt = DateTime.now();
+      existingSubject.lastSyncedAt = DateTime.now();
+
+      // Guardar los cambios en Isar
+      await _localStorage.saveSubject(existingSubject);
       return true;
     } catch (e) {
       debugPrint('Error actualizando subtema: $e');

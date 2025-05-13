@@ -445,6 +445,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
                             subject.title,
@@ -452,6 +453,8 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
                             ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 2,
                           ),
                           if (subject.description != null) ...[
                             const SizedBox(height: 4),
@@ -461,16 +464,8 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                                 color: AppTheme.textColor.withOpacity(0.6),
                                 fontSize: 14,
                               ),
-                            ),
-                          ],
-                          if (subject.duration != null) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              subject.duration!,
-                              style: TextStyle(
-                                color: AppTheme.textColor.withOpacity(0.6),
-                                fontSize: 12,
-                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 2,
                             ),
                           ],
                         ],

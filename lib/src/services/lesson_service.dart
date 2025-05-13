@@ -67,7 +67,6 @@ class LessonService {
       final supabaseData = {
         'title': title,
         'description': description,
-        'content': '',
         'order': 0,
         'created_at': now.toIso8601String(),
         'updated_at': now.toIso8601String(),
@@ -144,33 +143,34 @@ class LessonService {
       final supabaseData = {
         'title': lesson.title,
         'description': lesson.description,
-        'content': lesson.content,
         'order': lesson.order,
         'updated_at': lesson.updatedAt.toIso8601String(),
       };
       debugPrint('      ${supabaseData.toString()}');
 
-      // Primero obtener el lesson_id correcto de Supabase
       try {
-        final lessonResponse = await _supabaseClient
-            .from('lessons')
-            .select('id')
-            .eq('local_id', id)
-            .single();
-
-        final supabaseLessonId = lessonResponse['id'];
-        debugPrint('   - Lesson ID en Supabase: $supabaseLessonId');
-
+        // Intentar actualizar directamente
         await _supabaseClient
             .from('lessons')
             .update(supabaseData)
-            .eq('id', supabaseLessonId);
+            .eq('id', lesson.remoteId);
 
-        debugPrint('✅ Lección actualizada exitosamente');
+        debugPrint('✅ Lección actualizada exitosamente en Supabase');
         return true;
       } catch (e) {
-        debugPrint('❌ Error: No se encontró la lección en Supabase');
-        return false;
+        // Si falla la actualización, intentar crear
+        try {
+          await _supabaseClient.from('lessons').insert({
+            ...supabaseData,
+            'id': lesson.remoteId,
+            'created_at': lesson.createdAt.toIso8601String(),
+          });
+          debugPrint('✅ Lección creada en Supabase');
+          return true;
+        } catch (e) {
+          debugPrint('❌ Error en Supabase: $e');
+          return false;
+        }
       }
     } catch (e) {
       debugPrint('❌ Error actualizando lección: $e');

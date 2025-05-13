@@ -173,35 +173,27 @@ class LessonContentService {
         return false;
       }
 
-      // Crear contenido actualizado
-      final updatedContent = LocalLessonContent(
-        remoteId: existingContent.remoteId,
-        subjectId: existingContent.subjectId,
-        title: data['title'] ?? existingContent.title,
-        contentType: data['content_type'] ?? existingContent.contentType,
-        content: data['content'] ?? existingContent.content,
-        videoUrl: data['video_url'] ?? existingContent.videoUrl,
-        orderIndex: existingContent.orderIndex,
-        createdAt: existingContent.createdAt,
-        updatedAt: DateTime.now(),
-        isActive: existingContent.isActive,
-        isDownloaded: existingContent.isDownloaded,
-        localVideoPath: existingContent.localVideoPath,
-        lastSyncedAt: DateTime.now(),
-      );
+      // Actualizar el objeto existente
+      existingContent.title = data['title'] ?? existingContent.title;
+      existingContent.contentType =
+          data['content_type'] ?? existingContent.contentType;
+      existingContent.content = data['content'] ?? existingContent.content;
+      existingContent.videoUrl = data['video_url'] ?? existingContent.videoUrl;
+      existingContent.updatedAt = DateTime.now();
+      existingContent.lastSyncedAt = DateTime.now();
 
       // Guardar en Isar
       debugPrint('   - Guardando en Isar...');
-      await _localStorage.saveContent(updatedContent);
+      await _localStorage.saveContent(existingContent);
 
       // Actualizar en Supabase
       debugPrint('   - Enviando datos a Supabase...');
       final supabaseData = {
-        'title': updatedContent.title,
-        'content_type': updatedContent.contentType,
-        'content': updatedContent.content,
-        'video_url': updatedContent.videoUrl,
-        'updated_at': updatedContent.updatedAt.toIso8601String(),
+        'title': existingContent.title,
+        'content_type': existingContent.contentType,
+        'content': existingContent.content,
+        'video_url': existingContent.videoUrl,
+        'updated_at': existingContent.updatedAt.toIso8601String(),
       };
       debugPrint('      ${supabaseData.toString()}');
 

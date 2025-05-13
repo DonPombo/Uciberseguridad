@@ -12,22 +12,22 @@ class LocalSubject {
   @Index()
   final String lessonId;
 
-  final String title;
-  final String? description;
-  final String? duration;
-  final String? iconName;
+  String title;
+  String? description;
+  String? duration;
+  String? iconName;
 
   @Index()
   final int orderIndex;
 
   final DateTime createdAt;
-  final DateTime updatedAt;
+  DateTime updatedAt;
 
   @Index()
-  final bool isActive;
+  bool isActive;
 
   @Index()
-  final DateTime lastSyncedAt;
+  DateTime lastSyncedAt;
 
   LocalSubject({
     required this.remoteId,

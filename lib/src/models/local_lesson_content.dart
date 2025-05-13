@@ -12,25 +12,25 @@ class LocalLessonContent {
   @Index()
   final String subjectId;
 
-  final String title;
-  final String contentType;
-  final String content;
-  final String? videoUrl;
+  String title;
+  String contentType;
+  String content;
+  String? videoUrl;
   String? localVideoPath;
 
   @Index()
   final int orderIndex;
 
   final DateTime createdAt;
-  final DateTime updatedAt;
+  DateTime updatedAt;
 
   @Index()
-  final bool isActive;
+  bool isActive;
 
   bool isDownloaded;
 
   @Index()
-  final DateTime lastSyncedAt;
+  DateTime lastSyncedAt;
 
   LocalLessonContent({
     required this.remoteId,

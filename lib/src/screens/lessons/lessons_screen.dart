@@ -342,7 +342,10 @@ class _LessonsScreenState extends State<LessonsScreen> {
           ? FloatingActionButton(
               onPressed: _showCreateLessonDialog,
               backgroundColor: AppTheme.accentColor,
-              child: const Icon(Icons.add),
+              child: const Icon(
+                Icons.add,
+                color: Colors.black,
+              ),
             )
           : null,
       body: _isLoading
