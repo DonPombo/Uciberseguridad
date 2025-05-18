@@ -1,12 +1,24 @@
 import 'package:go_router/go_router.dart';
 import 'package:uciberseguridad_app/src/screens/lessons/lessons_screens/lesson_content_screen.dart';
 import 'package:uciberseguridad_app/src/screens/lessons/lessons_screens/subject_detail_screen.dart';
+import 'package:uciberseguridad_app/src/screens/onboarding/onboarding_screen.dart';
 import '../screens/screens.dart';
 
 class AppRouter {
   static final router = GoRouter(
-    initialLocation: '/',
+    initialLocation: '/onboarding',
+    // redirect: (context, state) {
+    //   // Por ahora, siempre redirigimos al onboarding
+    //   if (state.matchedLocation != '/onboarding') {
+    //     return '/onboarding';
+    //   }
+    //   return null;
+    // },
     routes: [
+      GoRoute(
+        path: '/onboarding',
+        builder: (context, state) => const OnboardingScreen(),
+      ),
       GoRoute(
         path: '/',
         builder: (context, state) => const HomeScreen(),
