@@ -168,4 +168,42 @@ class AuthService {
       return null;
     }
   }
+
+  // Cambiar contraseña
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    try {
+      debugPrint('Iniciando cambio de contraseña...');
+
+      // Primero verificamos que la contraseña actual sea correcta
+      final user = _supabase.auth.currentUser;
+      if (user == null) {
+        throw 'No hay usuario autenticado';
+      }
+
+      // Intentamos iniciar sesión con la contraseña actual para verificarla
+      await _supabase.auth.signInWithPassword(
+        email: user.email!,
+        password: currentPassword,
+      );
+
+      // Si llegamos aquí, la contraseña actual es correcta
+      // Ahora actualizamos la contraseña
+      await _supabase.auth.updateUser(
+        supabase.UserAttributes(
+          password: newPassword,
+        ),
+      );
+
+      debugPrint('Contraseña actualizada exitosamente');
+    } catch (e) {
+      debugPrint('Error al cambiar la contraseña: $e');
+      if (e.toString().contains('Invalid login credentials')) {
+        throw 'La contraseña actual es incorrecta';
+      }
+      throw _handleError(e);
+    }
+  }
 }

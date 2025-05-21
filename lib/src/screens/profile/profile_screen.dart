@@ -7,6 +7,7 @@ import 'package:uciberseguridad_app/src/widgets/appbar_screen.dart';
 import 'package:uciberseguridad_app/src/widgets/side_menu.dart';
 import 'package:uciberseguridad_app/src/screens/auth/login_screen.dart';
 import 'package:uciberseguridad_app/src/screens/auth/register_screen.dart';
+import 'package:uciberseguridad_app/src/screens/auth/change_password_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -292,10 +293,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const Divider(),
           _buildSettingsItem(
-            'Notificaciones',
-            Icons.notifications,
+            'Cambiar Contraseña',
+            Icons.lock_outline,
             () {
-              // TODO: Implementar configuración de notificaciones
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ChangePasswordScreen(),
+                ),
+              );
             },
           ),
           const Divider(),

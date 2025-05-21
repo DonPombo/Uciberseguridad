@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:uciberseguridad_app/theme/app_theme.dart';
 import 'package:uciberseguridad_app/src/services/auth_service.dart';
 import 'package:uciberseguridad_app/src/models/user.dart';
+import 'package:uciberseguridad_app/src/utils/password_validator.dart';
 
 class RegisterScreen extends StatefulWidget {
   final VoidCallback onShowLogin;
@@ -110,17 +111,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             });
                           },
                         ),
+                        errorMaxLines: 3,
+                        errorStyle: const TextStyle(
+                          fontSize: 12,
+                          height: 1.2,
+                        ),
                       ),
                       obscureText: _obscurePassword,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Por favor ingresa una contraseña';
-                        }
-                        if (value.length < 6) {
-                          return 'La contraseña debe tener al menos 6 caracteres';
-                        }
-                        return null;
-                      },
+                      validator: PasswordValidator.validatePassword,
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceColor,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: AppTheme.accentColor.withOpacity(0.3),
+                        ),
+                      ),
+                      child: Text(
+                        PasswordValidator.getPasswordRequirements(),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.textColor.withOpacity(0.7),
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 24),
                     SizedBox(
